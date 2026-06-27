@@ -2380,7 +2380,7 @@ button {
 /* Tablets (Portrait) */
 @media (max-width: 768px) {
     .logo-img {
-        height: 80px;
+        height: 95px;
     }
 
     .navbar.scrolled .logo-img {
@@ -2662,7 +2662,7 @@ button {
 /* Small Mobile screens */
 @media (max-width: 480px) {
     .logo-img {
-        height: 68px;
+        height: 88px;
     }
 
     .navbar.scrolled .logo-img {
