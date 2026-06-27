@@ -49,30 +49,40 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mobile Navigation Toggle
     const navToggle = document.getElementById('navToggle');
     const navMenu = document.getElementById('navMenu');
+    const navBackdrop = document.getElementById('navBackdrop');
     const navLinks = document.querySelectorAll('.nav-link');
 
     if (navToggle) {
         navToggle.addEventListener('click', () => {
             navToggle.classList.toggle('active');
             navMenu.classList.toggle('active');
+            if (navBackdrop) navBackdrop.classList.toggle('active');
         });
+    }
+
+    // Close menu helper
+    function closeMenu() {
+        if (navToggle) navToggle.classList.remove('active');
+        if (navMenu) navMenu.classList.remove('active');
+        if (navBackdrop) navBackdrop.classList.remove('active');
     }
 
     // Close menu when a link is clicked
     navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            if (navToggle) navToggle.classList.remove('active');
-            if (navMenu) navMenu.classList.remove('active');
-        });
+        link.addEventListener('click', closeMenu);
     });
+
+    // Close menu when clicking the backdrop
+    if (navBackdrop) {
+        navBackdrop.addEventListener('click', closeMenu);
+    }
 
     // Close menu when clicking outside
     document.addEventListener('click', (e) => {
         if (navMenu && navToggle && navMenu.classList.contains('active') && 
             !navMenu.contains(e.target) && 
             !navToggle.contains(e.target)) {
-            navToggle.classList.remove('active');
-            navMenu.classList.remove('active');
+            closeMenu();
         }
     });
 
@@ -956,9 +966,13 @@ ${message ? `- *Message:* ${message}` : ''}`;
             if (bookingSection) {
                 const toggleEl = document.getElementById('navToggle');
                 const menuEl = document.getElementById('navMenu');
+                const backdropEl = document.getElementById('navBackdrop');
                 if (toggleEl && menuEl) {
                     toggleEl.classList.remove('active');
                     menuEl.classList.remove('active');
+                }
+                if (backdropEl) {
+                    backdropEl.classList.remove('active');
                 }
                 bookingSection.scrollIntoView({ behavior: 'smooth' });
             }

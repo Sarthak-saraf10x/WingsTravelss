@@ -20,7 +20,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&family=Permanent+Marker&family=Caveat:wght@700&display=swap"
         rel="stylesheet">
 
     <!-- Bootstrap Icons -->
@@ -50,6 +50,9 @@
         <span class="whatsapp-tooltip">Chat with us</span>
     </a>
 
+    <!-- Mobile Navigation Backdrop Overlay -->
+    <div class="nav-backdrop" id="navBackdrop"></div>
+
     <!-- Sticky Navbar -->
     <nav class="navbar" id="navbar">
         <div class="nav-container">
@@ -63,52 +66,53 @@
             </button>
             <ul class="nav-menu" id="navMenu">
                 <li><a href="#home" class="nav-link active">Home</a></li>
+                <li><a href="#why-choose-us" class="nav-link">About Us</a></li>
+                <li><a href="#packages" class="nav-link">Tour Packages</a></li>
                 <li><a href="#services" class="nav-link">Services</a></li>
-                <li><a href="#why-choose-us" class="nav-link">Why Us</a></li>
-                <li><a href="#packages" class="nav-link">Packages</a></li>
                 <li><a href="#gallery" class="nav-link">Gallery</a></li>
-                <li><a href="#reviews" class="nav-link">Reviews</a></li>
-                <li><a href="#booking" class="nav-link nav-btn-outline">Book Now</a></li>
-                <li><a href="tel:8855052083" class="nav-link nav-btn-solid"><i class="bi bi-telephone-fill"></i> Call
-                        Now</a></li>
+                <li><a href="#booking" class="nav-link">Contact</a></li>
             </ul>
         </div>
     </nav>
 
     <!-- 1. Hero Section -->
     <header id="home" class="hero-section">
-        <div class="hero-content">
-            <h1 class="hero-brand-title">WINGS TOURS &amp; TRAVELS</h1>
-            <div class="hero-tagline">Journey &bull; Explore &bull; Discover</div>
+        <div class="hero-container container">
+            <div class="hero-content">
+                <div class="hero-title-group">
+                    <h1 class="hero-brush-text main-title">JOURNEYS</h1>
+                    <div class="hero-divider-text">
+                        <span class="line"></span>
+                        <span class="text">THAT CREATE</span>
+                        <span class="line"></span>
+                    </div>
+                    <div class="hero-brush-text main-title">MEMORIES</div>
+                    <div class="hero-brush-underline">
+                        <svg viewBox="0 0 100 10" preserveAspectRatio="none">
+                            <path d="M0,5 Q50,10 100,5" stroke="#1E293B" stroke-width="3" fill="none" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                </div>
+                
+                <p class="hero-cursive-text">Travel Happy. Memories.</p>
+                
+                <div class="hero-subtext-group">
+                    <p class="hero-alert-text">SAFE TRAVEL. HAPPY MEMORIES.</p>
+                    <div class="hero-red-bar"></div>
+                    <p class="hero-description">
+                        Experience the joy of travelling with <strong>WING'S TRAVELS</strong>. 
+                        Your comfort, safety and satisfaction are our priority.
+                    </p>
+                </div>
+                
+                <div class="hero-buttons">
+                    <a href="#services" class="btn btn-primary"><i class="bi bi-calendar-event"></i> EXPLORE SERVICES</a>
+                </div>
+            </div>
         </div>
     </header>
 
-    <!-- Quick Stats Strip -->
-    <div class="stats-strip">
-        <div class="stats-strip-container container">
-            <div class="stats-strip-item">
-                <i class="bi bi-shield-check"></i>
-                <div>
-                    <h4>100% Safe Travel</h4>
-                    <p>Verified professional drivers</p>
-                </div>
-            </div>
-            <div class="stats-strip-item">
-                <i class="bi bi-chat-heart"></i>
-                <div>
-                    <h4>24/7 Support</h4>
-                    <p>Always available for you</p>
-                </div>
-            </div>
-            <div class="stats-strip-item">
-                <i class="bi bi-tags"></i>
-                <div>
-                    <h4>Best Price Guarantee</h4>
-                    <p>No hidden charges</p>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- 2. Our Services Section -->
     <section id="services" class="section services-section">
