@@ -831,7 +831,7 @@ button {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, var(--color-primary) 0%, #082d6b 100%);
+    background: var(--color-white);
     z-index: -1;
     transition: var(--transition-slow);
 }
@@ -844,17 +844,17 @@ button {
 }
 
 .service-card:hover h3 {
-    color: var(--color-white);
+    color: var(--color-primary);
 }
 
 .service-card:hover p {
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--color-light);
 }
 
 .service-card:hover .service-icon-container {
-    background-color: var(--color-accent);
-    color: var(--color-dark);
-    box-shadow: var(--shadow-gold);
+    background-color: var(--color-secondary);
+    color: var(--color-white);
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
 }
 
 .service-card:hover .service-card-hover-bg {
@@ -877,7 +877,7 @@ button {
 }
 
 .service-card:hover .service-card-action {
-    color: var(--color-accent);
+    color: var(--color-secondary);
 }
 
 /* Highlighted Driver Card */
@@ -1556,7 +1556,7 @@ button {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(to right, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
+    background: linear-gradient(to right, rgba(70, 71, 73, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%);
 }
 
 .booking-container {
