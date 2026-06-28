@@ -507,6 +507,12 @@
             color: var(--danger);
         }
 
+        .btn-icon.edit:hover {
+            background-color: rgba(59, 130, 246, 0.15);
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
         .btn-icon.whatsapp {
             background-color: rgba(37, 211, 102, 0.1);
             border-color: rgba(37, 211, 102, 0.3);
@@ -1632,6 +1638,10 @@
             ? 'http://localhost:5000/api'
             : 'https://wings-backend-jada.onrender.com/api';
         let token = localStorage.getItem('wings_token');
+        let packagesList = [];
+        let galleryList = [];
+        let vehiclesList = [];
+        let rentalsList = [];
 
         // Global fetch interceptor to handle expired or invalid JWT tokens (401 Unauthorized)
         const originalFetch = window.fetch;
@@ -1734,6 +1744,9 @@
                 e.preventDefault();
                 const form = document.getElementById('packageForm');
                 const btn = form.querySelector('button[type="submit"]');
+                const mode = form.getAttribute('data-mode') || 'add';
+                const id = form.getAttribute('data-id');
+
                 btn.disabled = true;
                 btn.innerHTML = 'Uploading... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
@@ -1745,11 +1758,18 @@
                 formData.append('category', document.getElementById('packageCategory').value);
                 formData.append('description', document.getElementById('packageDescription').value);
                 formData.append('isFeatured', document.getElementById('packageFeatured').checked);
-                formData.append('image', document.getElementById('packageImage').files[0]);
+                
+                const imageFile = document.getElementById('packageImage').files[0];
+                if (imageFile) {
+                    formData.append('image', imageFile);
+                }
 
                 try {
-                    const response = await fetch(`${API_BASE}/packages`, {
-                        method: 'POST',
+                    const url = mode === 'edit' ? `${API_BASE}/packages/${id}` : `${API_BASE}/packages`;
+                    const method = mode === 'edit' ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method: method,
                         headers: {
                             'Authorization': `Bearer ${token}`
                         },
@@ -1758,19 +1778,19 @@
 
                     const data = await response.json();
                     if (data.success) {
-                        showToast('Package created successfully!', 'success');
+                        showToast(mode === 'edit' ? 'Package updated successfully!' : 'Package created successfully!', 'success');
                         closeModal('packageModal');
-                        document.getElementById('packageForm').reset();
+                        form.reset();
                         loadPackages();
                         updateStats();
                     } else {
-                        showToast(data.message || 'Error creating package', 'error');
+                        showToast(data.message || `Error ${mode === 'edit' ? 'updating' : 'creating'} package`, 'error');
                     }
                 } catch (err) {
-                    showToast('Server error while saving package.', 'error');
+                    showToast(`Server error while ${mode === 'edit' ? 'updating' : 'saving'} package.`, 'error');
                 } finally {
                     btn.disabled = false;
-                    btn.innerHTML = 'Create Package <i class="bi bi-plus-circle"></i>';
+                    btn.innerHTML = mode === 'edit' ? 'Save Changes <i class="bi bi-check-circle"></i>' : 'Create Package <i class="bi bi-plus-circle"></i>';
                 }
             });
 
@@ -1779,6 +1799,9 @@
                 e.preventDefault();
                 const form = document.getElementById('galleryForm');
                 const btn = form.querySelector('button[type="submit"]');
+                const mode = form.getAttribute('data-mode') || 'add';
+                const id = form.getAttribute('data-id');
+
                 btn.disabled = true;
                 btn.innerHTML = 'Uploading... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
@@ -1786,11 +1809,18 @@
                 formData.append('title', document.getElementById('galleryTitle').value);
                 formData.append('category', document.getElementById('galleryCategory').value);
                 formData.append('description', document.getElementById('galleryDescription').value);
-                formData.append('image', document.getElementById('galleryImage').files[0]);
+                
+                const imageFile = document.getElementById('galleryImage').files[0];
+                if (imageFile) {
+                    formData.append('image', imageFile);
+                }
 
                 try {
-                    const response = await fetch(`${API_BASE}/gallery`, {
-                        method: 'POST',
+                    const url = mode === 'edit' ? `${API_BASE}/gallery/${id}` : `${API_BASE}/gallery`;
+                    const method = mode === 'edit' ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method: method,
                         headers: {
                             'Authorization': `Bearer ${token}`
                         },
@@ -1799,28 +1829,32 @@
 
                     const data = await response.json();
                     if (data.success) {
-                        showToast('Photo uploaded successfully!', 'success');
+                        showToast(mode === 'edit' ? 'Photo updated successfully!' : 'Photo uploaded successfully!', 'success');
                         closeModal('galleryModal');
-                        document.getElementById('galleryForm').reset();
+                        form.reset();
                         loadGallery();
                         updateStats();
                     } else {
-                        showToast(data.message || 'Error uploading photo', 'error');
+                        showToast(data.message || `Error ${mode === 'edit' ? 'updating' : 'uploading'} photo`, 'error');
                     }
                 } catch (err) {
-                    showToast('Server error while uploading photo.', 'error');
+                    showToast(`Server error while ${mode === 'edit' ? 'updating' : 'uploading'} photo.`, 'error');
                 } finally {
                     btn.disabled = false;
-                    btn.innerHTML = 'Upload Photo <i class="bi bi-cloud-arrow-up-fill"></i>';
+                    btn.innerHTML = mode === 'edit' ? 'Save Changes <i class="bi bi-check-circle"></i>' : 'Upload Photo <i class="bi bi-cloud-arrow-up-fill"></i>';
                 }
             });
 
             // Rental Form Listener
             document.getElementById('rentalForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
-                const btn = this.querySelector('button[type="submit"]');
+                const form = document.getElementById('rentalForm');
+                const btn = form.querySelector('button[type="submit"]');
+                const mode = form.getAttribute('data-mode') || 'add';
+                const id = form.getAttribute('data-id');
+
                 btn.disabled = true;
-                btn.textContent = 'Uploading...';
+                btn.innerHTML = 'Uploading... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
                 const formData = new FormData();
                 formData.append('name', document.getElementById('rentalName').value.trim());
@@ -1832,29 +1866,33 @@
                 formData.append('ratePerHour', document.getElementById('rentalRatePerHour').value.trim());
                 formData.append('minFare', document.getElementById('rentalMinFare').value.trim());
                 formData.append('features', document.getElementById('rentalFeatures').value.trim());
+                
                 const imageFile = document.getElementById('rentalImage').files[0];
                 if (imageFile) formData.append('image', imageFile);
 
                 try {
-                    const response = await fetch(`${API_BASE}/rentals`, {
-                        method: 'POST',
+                    const url = mode === 'edit' ? `${API_BASE}/rentals/${id}` : `${API_BASE}/rentals`;
+                    const method = mode === 'edit' ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                        method: method,
                         headers: { 'Authorization': `Bearer ${token}` },
                         body: formData
                     });
                     const data = await response.json();
                     if (data.success) {
-                        showToast('Rental vehicle added successfully!', 'success');
+                        showToast(mode === 'edit' ? 'Rental vehicle updated successfully!' : 'Rental vehicle added successfully!', 'success');
                         closeModal('rentalModal');
                         this.reset();
                         loadRentals();
                     } else {
-                        showToast(data.message || 'Error adding rental vehicle', 'error');
+                        showToast(data.message || `Error ${mode === 'edit' ? 'updating' : 'adding'} rental vehicle`, 'error');
                     }
                 } catch (err) {
-                    showToast('Connection error adding rental vehicle.', 'error');
+                    showToast(`Connection error ${mode === 'edit' ? 'updating' : 'adding'} rental vehicle.`, 'error');
                 } finally {
                     btn.disabled = false;
-                    btn.innerHTML = 'Add to Rentals <i class="bi bi-plus-circle"></i>';
+                    btn.innerHTML = mode === 'edit' ? 'Save Changes <i class="bi bi-check-circle"></i>' : 'Add to Rentals <i class="bi bi-plus-circle"></i>';
                 }
             });
         });
@@ -2006,11 +2044,155 @@
 
         // Modals management
         function openModal(id) {
+            if (id === 'packageModal') {
+                const form = document.getElementById('packageForm');
+                form.setAttribute('data-mode', 'add');
+                form.removeAttribute('data-id');
+                form.reset();
+                document.getElementById('packageImage').required = true;
+                const headerTitle = document.querySelector('#packageModal .modal-header h3');
+                if (headerTitle) headerTitle.textContent = 'Add Featured Tour Package';
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.innerHTML = 'Create Package <i class="bi bi-plus-circle"></i>';
+            } else if (id === 'galleryModal') {
+                const form = document.getElementById('galleryForm');
+                form.setAttribute('data-mode', 'add');
+                form.removeAttribute('data-id');
+                form.reset();
+                document.getElementById('galleryImage').required = true;
+                const headerTitle = document.querySelector('#galleryModal .modal-header h3');
+                if (headerTitle) headerTitle.textContent = 'Upload Gallery Photo';
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.innerHTML = 'Upload Photo <i class="bi bi-cloud-arrow-up-fill"></i>';
+            } else if (id === 'vehicleModal') {
+                const form = document.getElementById('vehicleForm');
+                form.setAttribute('data-mode', 'add');
+                form.removeAttribute('data-id');
+                form.reset();
+                document.getElementById('vehicleImage').required = true;
+                const headerTitle = document.querySelector('#vehicleModal .modal-header h3');
+                if (headerTitle) headerTitle.textContent = 'Add Vehicle to Fleet';
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.innerHTML = 'Add to Fleet <i class="bi bi-plus-circle"></i>';
+            } else if (id === 'rentalModal') {
+                const form = document.getElementById('rentalForm');
+                form.setAttribute('data-mode', 'add');
+                form.removeAttribute('data-id');
+                form.reset();
+                document.getElementById('rentalImage').required = true;
+                const headerTitle = document.querySelector('#rentalModal .modal-header h3');
+                if (headerTitle) headerTitle.textContent = 'Add Rental Vehicle (Rates)';
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.innerHTML = 'Add to Rentals <i class="bi bi-plus-circle"></i>';
+            }
             document.getElementById(id).classList.add('active');
         }
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
+        }
+
+        function openEditPackage(id) {
+            const pkg = packagesList.find(p => p._id === id);
+            if (!pkg) return showToast('Package not found.', 'error');
+
+            openModal('packageModal');
+
+            const form = document.getElementById('packageForm');
+            form.setAttribute('data-mode', 'edit');
+            form.setAttribute('data-id', id);
+
+            document.getElementById('packageTitle').value = pkg.title || '';
+            document.getElementById('packageDuration').value = pkg.duration || '';
+            document.getElementById('packagePrice').value = pkg.price || '';
+            document.getElementById('packageBadge').value = pkg.badge || '';
+            document.getElementById('packageCategory').value = pkg.category || '';
+            document.getElementById('packageDescription').value = pkg.description || '';
+            document.getElementById('packageFeatured').checked = pkg.isFeatured || false;
+
+            document.getElementById('packageImage').required = false;
+
+            const headerTitle = document.querySelector('#packageModal .modal-header h3');
+            if (headerTitle) headerTitle.textContent = 'Edit Tour Package';
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.innerHTML = 'Save Changes <i class="bi bi-check-circle"></i>';
+        }
+
+        function openEditGallery(id) {
+            const item = galleryList.find(g => g._id === id);
+            if (!item) return showToast('Image not found.', 'error');
+
+            openModal('galleryModal');
+
+            const form = document.getElementById('galleryForm');
+            form.setAttribute('data-mode', 'edit');
+            form.setAttribute('data-id', id);
+
+            document.getElementById('galleryTitle').value = item.title || '';
+            document.getElementById('galleryCategory').value = item.category || '';
+            document.getElementById('galleryDescription').value = item.description || '';
+
+            document.getElementById('galleryImage').required = false;
+
+            const headerTitle = document.querySelector('#galleryModal .modal-header h3');
+            if (headerTitle) headerTitle.textContent = 'Edit Gallery Photo';
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.innerHTML = 'Save Changes <i class="bi bi-check-circle"></i>';
+        }
+
+        function openEditVehicle(id) {
+            const vehicle = vehiclesList.find(v => v._id === id);
+            if (!vehicle) return showToast('Vehicle not found.', 'error');
+
+            openModal('vehicleModal');
+
+            const form = document.getElementById('vehicleForm');
+            form.setAttribute('data-mode', 'edit');
+            form.setAttribute('data-id', id);
+
+            document.getElementById('vehicleName').value = vehicle.name || '';
+            document.getElementById('vehicleType').value = vehicle.type || '';
+            document.getElementById('vehicleCapacity').value = vehicle.capacity || '';
+            document.getElementById('vehicleFuelType').value = vehicle.fuelType || 'Diesel';
+            document.getElementById('vehicleTransmission').value = vehicle.transmission || 'Manual';
+            document.getElementById('vehiclePricePerKm').value = vehicle.pricePerKm || '';
+            document.getElementById('vehicleFeatures').value = vehicle.features ? vehicle.features.join(', ') : '';
+            document.getElementById('vehicleAC').checked = vehicle.ac || false;
+
+            document.getElementById('vehicleImage').required = false;
+
+            const headerTitle = document.querySelector('#vehicleModal .modal-header h3');
+            if (headerTitle) headerTitle.textContent = 'Edit Vehicle Details';
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.innerHTML = 'Save Changes <i class="bi bi-check-circle"></i>';
+        }
+
+        function openEditRental(id) {
+            const rental = rentalsList.find(r => r._id === id);
+            if (!rental) return showToast('Rental vehicle not found.', 'error');
+
+            openModal('rentalModal');
+
+            const form = document.getElementById('rentalForm');
+            form.setAttribute('data-mode', 'edit');
+            form.setAttribute('data-id', id);
+
+            document.getElementById('rentalName').value = rental.name || '';
+            document.getElementById('rentalType').value = rental.type || '';
+            document.getElementById('rentalCapacity').value = rental.capacity || '';
+            document.getElementById('rentalRatePerKm').value = rental.ratePerKm || '';
+            document.getElementById('rentalRatePerDay').value = rental.ratePerDay || '';
+            document.getElementById('rentalRatePerHour').value = rental.ratePerHour || '';
+            document.getElementById('rentalMinFare').value = rental.minFare || '';
+            document.getElementById('rentalFeatures').value = rental.features ? rental.features.join(', ') : '';
+            document.getElementById('rentalAC').checked = rental.ac || false;
+
+            document.getElementById('rentalImage').required = false;
+
+            const headerTitle = document.querySelector('#rentalModal .modal-header h3');
+            if (headerTitle) headerTitle.textContent = 'Edit Rental Vehicle';
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.innerHTML = 'Save Changes <i class="bi bi-check-circle"></i>';
         }
 
         // --- Recent Bookings ---
@@ -2217,6 +2399,7 @@
                 const resData = await response.json();
                 
                 if (resData.success && resData.data.length > 0) {
+                    packagesList = resData.data;
                     grid.innerHTML = '';
                     resData.data.forEach(p => {
                         const card = document.createElement('div');
@@ -2238,6 +2421,9 @@
                                 <div class="item-footer">
                                     <span class="item-price">${escapeHtml(p.price)}</span>
                                     <div class="action-flex">
+                                        <button class="btn-icon edit" onclick="openEditPackage('${p._id}')" title="Edit Package">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
                                         <button class="btn-icon" onclick="togglePackageFeatured('${p._id}', ${p.isFeatured})" title="${p.isFeatured ? 'Remove from Featured' : 'Feature this Package'}">
                                             <i class="bi ${p.isFeatured ? 'bi-star-fill' : 'bi-star'}" style="color:${p.isFeatured ? 'var(--accent)' : 'inherit'};"></i>
                                         </button>
@@ -2249,6 +2435,7 @@
                         grid.appendChild(card);
                     });
                 } else {
+                    packagesList = [];
                     grid.innerHTML = '<div class="text-center py-5" style="grid-column: 1/-1;">No tour packages created. Click "Add New Tour" to create one.</div>';
                 }
             } catch (err) {
@@ -2313,6 +2500,7 @@
                 const resData = await response.json();
                 
                 if (resData.success && resData.data.length > 0) {
+                    galleryList = resData.data;
                     grid.innerHTML = '';
                     resData.data.forEach(g => {
                         const card = document.createElement('div');
@@ -2326,7 +2514,8 @@
                             <div class="item-body" style="padding:15px; flex-grow:0;">
                                 <h4 class="item-title" style="margin-bottom:4px;">${escapeHtml(g.title)}</h4>
                                 <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">${escapeHtml(g.description || '')}</p>
-                                <div style="display:flex; justify-content:flex-end;">
+                                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                                    <button class="btn-icon edit" onclick="openEditGallery('${g._id}')" title="Edit Image"><i class="bi bi-pencil-square"></i></button>
                                     <button class="btn-icon delete" onclick="deleteGalleryItem('${g._id}')" title="Delete Image"><i class="bi bi-trash"></i></button>
                                 </div>
                             </div>
@@ -2334,6 +2523,7 @@
                         grid.appendChild(card);
                     });
                 } else {
+                    galleryList = [];
                     grid.innerHTML = '<div class="text-center py-5" style="grid-column: 1/-1;">No photos in gallery. Click "Upload Photo" to add one.</div>';
                 }
             } catch (err) {
@@ -2416,6 +2606,7 @@
                 const resData = await response.json();
 
                 if (resData.success && resData.data.length > 0) {
+                    vehiclesList = resData.data;
                     grid.innerHTML = '';
                     resData.data.forEach(v => {
                         const acLabel = v.ac ? '<span style="color:var(--success);font-weight:600;">AC</span>' : '<span style="color:var(--danger)">Non-AC</span>';
@@ -2437,7 +2628,8 @@
                                 ${v.pricePerKm ? `<p style="font-size:0.85rem;font-weight:700;color:var(--primary);margin-bottom:10px;">
                                     <i class="bi bi-tag-fill" style="margin-right:4px;"></i>${escapeHtml(v.pricePerKm)}
                                 </p>` : ''}
-                                <div style="display:flex; justify-content:flex-end;">
+                                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                                    <button class="btn-icon edit" onclick="openEditVehicle('${v._id}')" title="Edit Vehicle"><i class="bi bi-pencil-square"></i></button>
                                     <button class="btn-icon delete" onclick="deleteVehicle('${v._id}')" title="Delete Vehicle"><i class="bi bi-trash"></i></button>
                                 </div>
                             </div>
@@ -2445,6 +2637,7 @@
                         grid.appendChild(card);
                     });
                 } else {
+                    vehiclesList = [];
                     grid.innerHTML = '<div class="text-center py-5" style="grid-column: 1/-1;">No vehicles in fleet. Click "Add Vehicle" to add one.</div>';
                 }
             } catch (err) {
@@ -2455,9 +2648,13 @@
         // Vehicle Form Submit
         document.getElementById('vehicleForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const btn = this.querySelector('button[type="submit"]');
+            const form = document.getElementById('vehicleForm');
+            const btn = form.querySelector('button[type="submit"]');
+            const mode = form.getAttribute('data-mode') || 'add';
+            const id = form.getAttribute('data-id');
+
             btn.disabled = true;
-            btn.textContent = 'Uploading...';
+            btn.innerHTML = 'Uploading... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
             const formData = new FormData();
             formData.append('name', document.getElementById('vehicleName').value.trim());
@@ -2468,29 +2665,33 @@
             formData.append('ac', document.getElementById('vehicleAC').checked);
             formData.append('features', document.getElementById('vehicleFeatures').value.trim());
             formData.append('pricePerKm', document.getElementById('vehiclePricePerKm').value.trim());
+            
             const imageFile = document.getElementById('vehicleImage').files[0];
             if (imageFile) formData.append('image', imageFile);
 
             try {
-                const response = await fetch(`${API_BASE}/vehicles`, {
-                    method: 'POST',
+                const url = mode === 'edit' ? `${API_BASE}/vehicles/${id}` : `${API_BASE}/vehicles`;
+                const method = mode === 'edit' ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
                     headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
                 const data = await response.json();
                 if (data.success) {
-                    showToast('Vehicle added to fleet successfully!', 'success');
+                    showToast(mode === 'edit' ? 'Vehicle details updated successfully!' : 'Vehicle added to fleet successfully!', 'success');
                     closeModal('vehicleModal');
                     this.reset();
                     loadVehicles();
                 } else {
-                    showToast(data.message || 'Error adding vehicle', 'error');
+                    showToast(data.message || `Error ${mode === 'edit' ? 'updating' : 'adding'} vehicle`, 'error');
                 }
             } catch (err) {
-                showToast('Connection error adding vehicle.', 'error');
+                showToast(`Connection error ${mode === 'edit' ? 'updating' : 'adding'} vehicle.`, 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = 'Add to Fleet <i class="bi bi-plus-circle"></i>';
+                btn.innerHTML = mode === 'edit' ? 'Save Changes <i class="bi bi-check-circle"></i>' : 'Add to Fleet <i class="bi bi-plus-circle"></i>';
             }
         });
 
@@ -2528,6 +2729,7 @@
                 const resData = await response.json();
 
                 if (resData.success && resData.data.length > 0) {
+                    rentalsList = resData.data;
                     grid.innerHTML = '';
                     resData.data.forEach(v => {
                         const acLabel = v.ac ? '<span style="color:var(--success);font-weight:600;">AC</span>' : '<span style="color:var(--danger)">Non-AC</span>';
@@ -2550,7 +2752,8 @@
                                     ${v.ratePerHour ? `<span><strong>Hour:</strong> ${escapeHtml(v.ratePerHour)}</span>` : ''}
                                     ${v.minFare ? `<span><strong>Min:</strong> ${escapeHtml(v.minFare)}</span>` : ''}
                                 </div>
-                                <div style="display:flex; justify-content:flex-end;">
+                                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                                    <button class="btn-icon edit" onclick="openEditRental('${v._id}')" title="Edit Rental Vehicle"><i class="bi bi-pencil-square"></i></button>
                                     <button class="btn-icon delete" onclick="deleteRental('${v._id}')" title="Delete Rental Vehicle"><i class="bi bi-trash"></i></button>
                                 </div>
                             </div>
@@ -2558,6 +2761,7 @@
                         grid.appendChild(card);
                     });
                 } else {
+                    rentalsList = [];
                     grid.innerHTML = '<div class="text-center py-5" style="grid-column: 1/-1;">No rental vehicles registered. Click "Add Rental Car" to add one.</div>';
                 }
             } catch (err) {
