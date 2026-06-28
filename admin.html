@@ -1633,6 +1633,23 @@
             : 'https://wings-backend-jada.onrender.com/api';
         let token = localStorage.getItem('wings_token');
 
+        // Global fetch interceptor to handle expired or invalid JWT tokens (401 Unauthorized)
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+            const response = await originalFetch(...args);
+            if (response.status === 401) {
+                const url = args[0] ? args[0].toString() : '';
+                if (!url.includes('/admin/login') && !url.includes('/admin/google-login')) {
+                    localStorage.removeItem('wings_token');
+                    token = null;
+                    document.getElementById('loginScreen').style.display = 'flex';
+                    document.getElementById('loginScreen').style.opacity = 1;
+                    showToast('Session expired. Please log in again.', 'error');
+                }
+            }
+            return response;
+        };
+
         // Check if admin is logged in
         document.addEventListener('DOMContentLoaded', () => {
             initGoogleSignIn();
