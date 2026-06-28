@@ -538,73 +538,7 @@
             ? 'http://localhost:5000/api'
             : 'https://wings-backend-jada.onrender.com/api';
 
-        const FALLBACK_RENTALS = [
-            {
-                name: 'Swift Dzire Sedan',
-                type: 'Sedan',
-                capacity: 4,
-                ac: true,
-                ratePerKm: '₹11/km',
-                ratePerDay: '₹2,500/day',
-                ratePerHour: '₹300/hr',
-                minFare: '₹500 minimum',
-                imageUrl: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?q=80&w=800'
-            },
-            {
-                name: 'Toyota Innova Crysta',
-                type: 'Innova',
-                capacity: 7,
-                ac: true,
-                ratePerKm: '₹14/km',
-                ratePerDay: '₹4,000/day',
-                ratePerHour: '₹450/hr',
-                minFare: '₹700 minimum',
-                imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800'
-            },
-            {
-                name: 'Maruti Suzuki Ertiga',
-                type: 'Ertiga',
-                capacity: 7,
-                ac: true,
-                ratePerKm: '₹12/km',
-                ratePerDay: '₹3,200/day',
-                ratePerHour: '₹380/hr',
-                minFare: '₹600 minimum',
-                imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=800'
-            },
-            {
-                name: 'Toyota Fortuner',
-                type: 'SUV',
-                capacity: 7,
-                ac: true,
-                ratePerKm: '₹18/km',
-                ratePerDay: '₹6,500/day',
-                ratePerHour: '₹750/hr',
-                minFare: '₹1,200 minimum',
-                imageUrl: 'https://images.unsplash.com/photo-1533106418989-88406c7cc8ca?q=80&w=800'
-            },
-            {
-                name: 'Force Tempo Traveller',
-                type: 'Tempo Traveller',
-                capacity: 17,
-                ac: true,
-                ratePerKm: '₹22/km',
-                ratePerDay: '₹8,000/day',
-                ratePerHour: '₹900/hr',
-                minFare: '₹2,000 minimum',
-                imageUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=800'
-            },
-            {
-                name: 'Volvo AC Bus 45-Seater',
-                type: 'Luxury Bus',
-                capacity: 45,
-                ac: true,
-                ratePerKm: '₹45/km',
-                ratePerDay: '₹18,000/day',
-                minFare: '₹5,000 minimum',
-                imageUrl: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?q=80&w=800'
-            }
-        ];
+        const FALLBACK_RENTALS = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             loadAllTariffs();
@@ -617,19 +551,22 @@
 
         async function loadAllTariffs() {
             const grid = document.getElementById('fullTariffsGrid');
+            if (!grid) return;
             try {
                 const response = await fetch(`${API_BASE}/rentals`);
                 const data = await response.json();
                 
-                const vehicles = (data.success && data.data && data.data.length > 0) 
-                    ? data.data 
-                    : FALLBACK_RENTALS;
-                
-                renderTariffs(vehicles, grid);
-                populateVehicleDropdown(vehicles);
+                if (data.success && data.data && data.data.length > 0) {
+                    renderTariffs(data.data, grid);
+                    populateVehicleDropdown(data.data);
+                } else {
+                    grid.innerHTML = '<div class="no-data-msg" style="grid-column: 1/-1; text-align: center; padding: 3rem 1rem; color: var(--text-muted);"><i class="bi bi-cash-coin" style="font-size: 2.5rem; display: block; margin-bottom: 1rem; color: var(--primary);"></i><p>No rental rates available at the moment.</p></div>';
+                    populateVehicleDropdown([]);
+                }
             } catch (err) {
-                renderTariffs(FALLBACK_RENTALS, grid);
-                populateVehicleDropdown(FALLBACK_RENTALS);
+                console.warn('Backend rentals API unavailable.');
+                grid.innerHTML = '<div class="no-data-msg" style="grid-column: 1/-1; text-align: center; padding: 3rem 1rem; color: var(--text-muted);"><i class="bi bi-cash-coin" style="font-size: 2.5rem; display: block; margin-bottom: 1rem; color: var(--primary);"></i><p>No rental rates available at the moment.</p></div>';
+                populateVehicleDropdown([]);
             }
         }
 
