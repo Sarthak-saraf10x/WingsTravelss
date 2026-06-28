@@ -2927,7 +2927,7 @@ button {
    CAR RENTAL RATES SECTION STYLES
    ========================================================================== */
 .rental-rates-section {
-    background-color: var(--color-bg-dark, #0b1120);
+    background-color: #f8fafc;
     padding: 80px 0;
 }
 
@@ -2939,21 +2939,20 @@ button {
 }
 
 .rental-card {
-    background: rgba(30, 41, 59, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 16px;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
     height: 100%;
-    backdrop-filter: blur(10px);
 }
 
 .rental-card:hover {
     transform: translateY(-8px);
-    border-color: rgba(239, 68, 68, 0.3);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+    border-color: rgba(239, 68, 68, 0.2);
+    box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
 }
 
 .rental-card-img-wrap {
@@ -3012,7 +3011,7 @@ button {
 .rental-card-name {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #f8fafc;
+    color: #0f172a;
     margin-bottom: 18px;
 }
 
@@ -3021,10 +3020,10 @@ button {
     flex-direction: column;
     gap: 8px;
     margin-bottom: 18px;
-    background: rgba(15, 23, 42, 0.25);
+    background: #f8fafc;
     padding: 12px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .rental-rate-item {
@@ -3032,9 +3031,9 @@ button {
     justify-content: space-between;
     align-items: center;
     font-size: 0.85rem;
-    color: #94a3b8;
+    color: #475569;
     padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .rental-rate-item:last-child {
@@ -3054,11 +3053,11 @@ button {
 
 .rental-rate-value {
     font-weight: 600;
-    color: #f1f5f9;
+    color: #0f172a;
 }
 
 .rental-min-fare .rental-rate-value {
-    color: var(--color-accent, #ffc857);
+    color: var(--color-secondary, #EF4444);
 }
 
 .rental-ac-badge {
@@ -3066,8 +3065,8 @@ button {
     align-items: center;
     gap: 6px;
     font-size: 0.75rem;
-    color: #34d399;
-    background: rgba(52, 211, 153, 0.1);
+    color: #059669;
+    background: rgba(5, 150, 105, 0.08);
     padding: 4px 10px;
     border-radius: 6px;
     margin-bottom: 20px;
