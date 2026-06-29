@@ -1350,16 +1350,16 @@ function renderRentalCards(vehicles, containerId = 'rentalRatesGrid', limit = 4)
 
         card.innerHTML = `
             <div class="rental-card-img-wrap">
-                <img src="${v.imageUrl}" alt="${v.name}" class="rental-card-img" loading="lazy">
+                <img src="${v.imageUrl}" alt="${v.type}" class="rental-card-img" loading="lazy">
                 <div class="rental-card-type-badge">${v.type}</div>
                 <div class="rental-card-capacity"><i class="bi bi-people-fill"></i> ${v.capacity} Seater</div>
             </div>
             <div class="rental-card-body">
-                <h3 class="rental-card-name">${v.name}</h3>
+                <h3 class="rental-card-name">${v.type}</h3>
                 <div class="rental-rates-grid">
                     ${v.ratePerKm ? `<div class="rental-rate-item"><span class="rental-rate-label"><i class="bi bi-map"></i> Per KM</span><span class="rental-rate-value">${v.ratePerKm}</span></div>` : ''}
                     ${v.ratePerDay ? `<div class="rental-rate-item"><span class="rental-rate-label"><i class="bi bi-calendar3"></i> Per Day</span><span class="rental-rate-value">${v.ratePerDay}</span></div>` : ''}
-                    ${v.ratePerHour ? `<div class="rental-rate-item"><span class="rental-rate-label"><i class="bi bi-clock"></i> Per Hour</span><span class="rental-rate-value">${v.ratePerHour}</span></div>` : ''}
+                    ${v.minKm ? `<div class="rental-rate-item"><span class="rental-rate-label"><i class="bi bi-speedometer2"></i> Min KM</span><span class="rental-rate-value">${v.minKm}</span></div>` : ''}
                     ${v.minFare ? `<div class="rental-rate-item rental-min-fare"><span class="rental-rate-label"><i class="bi bi-info-circle"></i> Min Fare</span><span class="rental-rate-value">${v.minFare}</span></div>` : ''}
                 </div>
                 ${v.ac ? '<div class="rental-ac-badge"><i class="bi bi-snow2"></i> Air Conditioned</div>' : ''}

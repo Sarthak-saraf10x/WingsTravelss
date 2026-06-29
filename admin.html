@@ -1,16 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wings Tours & Travels - Owner Dashboard</title>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    
+
     <style>
         :root {
             --bg-dark: #0f172a;
@@ -27,13 +30,19 @@
             --font-outfit: 'Outfit', sans-serif;
         }
 
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        img, table, select, input, textarea {
+        img,
+        table,
+        select,
+        input,
+        textarea {
             max-width: 100%;
         }
 
@@ -47,7 +56,11 @@
             max-width: 100vw;
         }
 
-        a, button, input, select, textarea {
+        a,
+        button,
+        input,
+        select,
+        textarea {
             font-family: inherit;
         }
 
@@ -279,7 +292,8 @@
             cursor: pointer;
         }
 
-        .sidebar-link:hover, .sidebar-link.active {
+        .sidebar-link:hover,
+        .sidebar-link.active {
             color: var(--text-main);
             background-color: rgba(255, 255, 255, 0.05);
         }
@@ -468,13 +482,35 @@
             text-transform: uppercase;
         }
 
-        .badge-pending { background-color: rgba(245, 158, 11, 0.15); color: var(--accent); }
-        .badge-confirmed { background-color: rgba(245, 158, 11, 0.15); color: var(--accent); }
-        .badge-completed { background-color: rgba(16, 185, 129, 0.15); color: var(--success); }
-        .badge-cancelled { background-color: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .badge-pending {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--accent);
+        }
 
-        .badge-read { background-color: rgba(255, 255, 255, 0.1); color: var(--text-muted); }
-        .badge-resolved { background-color: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .badge-confirmed {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--accent);
+        }
+
+        .badge-completed {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        .badge-cancelled {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .badge-read {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+        }
+
+        .badge-resolved {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
 
         /* Action Buttons */
         .action-flex {
@@ -671,7 +707,7 @@
 
         .modal-content {
             background-color: var(--bg-card);
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 20px;
             width: 100%;
             max-width: 520px;
@@ -703,7 +739,7 @@
         }
 
         .modal-close {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border);
             color: var(--text-muted);
             font-size: 1.4rem;
@@ -718,7 +754,8 @@
             transition: background 0.2s, color 0.2s;
         }
 
-        .modal-close:hover, .modal-close:active {
+        .modal-close:hover,
+        .modal-close:active {
             background: rgba(239, 68, 68, 0.15);
             color: var(--primary);
             border-color: rgba(239, 68, 68, 0.3);
@@ -761,7 +798,7 @@
             border-radius: 6px;
             padding: 16px 20px;
             min-width: 280px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -778,8 +815,13 @@
             }
         }
 
-        .toast.success { border-left-color: var(--success); }
-        .toast.error { border-left-color: var(--danger); }
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
 
         .toast-close {
             background: transparent;
@@ -789,8 +831,15 @@
         }
 
         /* Utility classes */
-        .text-center { text-align: center; }
-        .py-5 { padding-top: 40px; padding-bottom: 40px; }
+        .text-center {
+            text-align: center;
+        }
+
+        .py-5 {
+            padding-top: 40px;
+            padding-bottom: 40px;
+        }
+
         .loader {
             border: 3px solid var(--border);
             border-top: 3px solid var(--primary);
@@ -800,9 +849,15 @@
             animation: spin 1s linear infinite;
             margin: 20px auto;
         }
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         /* =========================================
@@ -810,12 +865,21 @@
            Client uses phone exclusively.
            All mobile styles are high priority.
         ========================================= */
-        .mobile-bottom-nav, .mobile-top-bar { display: none; }
-        .cell-label { display: none; }
+        .mobile-bottom-nav,
+        .mobile-top-bar {
+            display: none;
+        }
+
+        .cell-label {
+            display: none;
+        }
 
         @media (max-width: 768px) {
+
             /* Hide desktop sidebar */
-            .sidebar { display: none !important; }
+            .sidebar {
+                display: none !important;
+            }
 
             /* Mobile Top Bar */
             .mobile-top-bar {
@@ -833,10 +897,12 @@
                 padding: 0 16px;
                 box-shadow: 0 2px 16px rgba(239, 68, 68, 0.15);
             }
+
             .mobile-logo img {
                 height: 34px;
                 width: auto;
             }
+
             .mobile-logout-btn {
                 background: rgba(239, 68, 68, 0.12);
                 border: 1px solid rgba(239, 68, 68, 0.3);
@@ -852,6 +918,7 @@
                 font-size: 0.8rem;
                 font-weight: 600;
             }
+
             .mobile-logout-btn:active {
                 background: rgba(239, 68, 68, 0.3);
             }
@@ -872,6 +939,7 @@
                 padding: 0 4px;
                 box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.4);
             }
+
             .bottom-nav-link {
                 display: flex;
                 flex-direction: column;
@@ -890,13 +958,16 @@
                 letter-spacing: 0.2px;
                 padding-top: 6px;
             }
+
             .bottom-nav-link i {
                 font-size: 1.15rem;
                 transition: transform 0.2s;
             }
+
             .bottom-nav-link.active {
                 color: var(--primary);
             }
+
             .bottom-nav-link.active i {
                 transform: scale(1.15);
             }
@@ -920,10 +991,12 @@
                 align-items: center;
                 justify-content: space-between;
             }
+
             .header-title h1 {
                 font-size: 1.3rem;
                 margin-bottom: 2px;
             }
+
             .header-title p {
                 font-size: 0.78rem;
             }
@@ -934,6 +1007,7 @@
                 gap: 12px;
                 margin-bottom: 20px;
             }
+
             .stat-card {
                 padding: 16px 14px;
                 flex-direction: column;
@@ -941,15 +1015,18 @@
                 text-align: center;
                 border-radius: 14px;
             }
+
             .stat-icon {
                 width: 44px;
                 height: 44px;
                 font-size: 1.2rem;
                 margin: 0 auto;
             }
+
             .stat-info .stat-num {
                 font-size: 1.5rem;
             }
+
             .stat-info h3 {
                 font-size: 0.7rem;
             }
@@ -959,14 +1036,17 @@
                 border-radius: 12px;
                 margin-bottom: 16px;
             }
+
             .card-header {
                 padding: 14px 16px;
                 flex-wrap: wrap;
                 gap: 10px;
             }
+
             .card-header h2 {
                 font-size: 1rem;
             }
+
             .card-header .btn {
                 font-size: 0.78rem;
                 padding: 6px 12px;
@@ -976,21 +1056,34 @@
             .table-responsive {
                 overflow-x: visible;
             }
+
             table {
                 display: block;
             }
-            thead { display: none !important; }
-            tbody { display: block; padding: 12px; }
+
+            thead {
+                display: none !important;
+            }
+
+            tbody {
+                display: block;
+                padding: 12px;
+            }
+
             tr {
                 display: block;
-                background: rgba(255,255,255,0.03);
+                background: rgba(255, 255, 255, 0.03);
                 border: 1px solid var(--border);
                 border-radius: 12px;
                 margin-bottom: 12px;
                 padding: 14px;
                 position: relative;
             }
-            tr:last-child { margin-bottom: 0; }
+
+            tr:last-child {
+                margin-bottom: 0;
+            }
+
             td {
                 display: flex;
                 align-items: flex-start;
@@ -1000,6 +1093,7 @@
                 gap: 8px;
                 line-height: 1.4;
             }
+
             td::before {
                 content: attr(data-label);
                 font-size: 0.68rem;
@@ -1021,6 +1115,7 @@
             .action-flex {
                 gap: 10px;
             }
+
             .btn-icon {
                 width: 40px;
                 height: 40px;
@@ -1046,6 +1141,7 @@
                 padding: 70px 12px 84px;
                 align-items: flex-start;
             }
+
             .modal-content {
                 width: 100%;
                 max-width: 100%;
@@ -1056,6 +1152,7 @@
                 margin: 0 auto;
                 transform: translateY(20px);
             }
+
             .modal.active .modal-content {
                 transform: translateY(0);
             }
@@ -1064,8 +1161,10 @@
             .form-row-2 {
                 grid-template-columns: 1fr;
             }
+
             .form-input {
-                font-size: 16px; /* prevents iOS zoom on focus */
+                font-size: 16px;
+                /* prevents iOS zoom on focus */
             }
 
             /* Toast — full width at bottom */
@@ -1074,6 +1173,7 @@
                 left: 12px;
                 right: 12px;
             }
+
             .toast {
                 min-width: unset;
                 width: 100%;
@@ -1081,6 +1181,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- ==================== LOGIN SCREEN ==================== -->
@@ -1093,11 +1194,13 @@
             <form id="loginForm">
                 <div class="form-group">
                     <label for="username">Username</label>
-                    <input type="text" id="username" class="form-input" placeholder="Enter admin username" required autocomplete="username">
+                    <input type="text" id="username" class="form-input" placeholder="Enter admin username" required
+                        autocomplete="username">
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+                    <input type="password" id="password" class="form-input" placeholder="Enter your password" required
+                        autocomplete="current-password">
                 </div>
                 <button type="submit" class="btn"><i class="bi bi-shield-lock-fill"></i> Sign In</button>
             </form>
@@ -1247,7 +1350,8 @@
                 <div class="data-card">
                     <div class="card-header">
                         <h2>Recent Booking Inquiries</h2>
-                        <a class="btn sidebar-link" style="width:auto; padding: 6px 12px; font-size:0.85rem;" data-tab="bookings">View All</a>
+                        <a class="btn sidebar-link" style="width:auto; padding: 6px 12px; font-size:0.85rem;"
+                            data-tab="bookings">View All</a>
                     </div>
                     <div class="table-responsive">
                         <table id="recentBookingsTable">
@@ -1276,7 +1380,8 @@
                 <div class="data-card">
                     <div class="card-header">
                         <h2>All Booking Inquiries</h2>
-                        <button class="btn btn-outline" style="width:auto; padding: 6px 12px; font-size:0.85rem;" onclick="loadBookings()">Refresh <i class="bi bi-arrow-clockwise"></i></button>
+                        <button class="btn btn-outline" style="width:auto; padding: 6px 12px; font-size:0.85rem;"
+                            onclick="loadBookings()">Refresh <i class="bi bi-arrow-clockwise"></i></button>
                     </div>
                     <div class="table-responsive">
                         <table id="bookingsTable">
@@ -1306,7 +1411,8 @@
                 <div class="data-card">
                     <div class="card-header">
                         <h2>Website General Enquiries</h2>
-                        <button class="btn btn-outline" style="width:auto; padding: 6px 12px; font-size:0.85rem;" onclick="loadEnquiries()">Refresh <i class="bi bi-arrow-clockwise"></i></button>
+                        <button class="btn btn-outline" style="width:auto; padding: 6px 12px; font-size:0.85rem;"
+                            onclick="loadEnquiries()">Refresh <i class="bi bi-arrow-clockwise"></i></button>
                     </div>
                     <div class="table-responsive">
                         <table id="enquiriesTable">
@@ -1333,7 +1439,8 @@
             <section id="tab-packages" class="tab-panel">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2 style="font-family:var(--font-outfit); font-size:1.1rem;">Tour Packages</h2>
-                    <button class="btn" style="width:auto; padding:10px 16px; font-size:0.85rem;" onclick="openModal('packageModal')">
+                    <button class="btn" style="width:auto; padding:10px 16px; font-size:0.85rem;"
+                        onclick="openModal('packageModal')">
                         <i class="bi bi-plus-lg"></i> Add Tour
                     </button>
                 </div>
@@ -1346,7 +1453,8 @@
             <section id="tab-gallery" class="tab-panel">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2 style="font-family:var(--font-outfit); font-size:1.1rem;">Gallery</h2>
-                    <button class="btn" style="width:auto; padding:10px 16px; font-size:0.85rem;" onclick="openModal('galleryModal')">
+                    <button class="btn" style="width:auto; padding:10px 16px; font-size:0.85rem;"
+                        onclick="openModal('galleryModal')">
                         <i class="bi bi-cloud-arrow-up-fill"></i> Upload
                     </button>
                 </div>
@@ -1359,7 +1467,8 @@
             <section id="tab-fleet" class="tab-panel">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2 style="font-family:var(--font-outfit); font-size:1.1rem;">Our Fleet</h2>
-                    <button class="btn" style="width:auto; padding:10px 16px; font-size:0.85rem;" onclick="openModal('vehicleModal')">
+                    <button class="btn" style="width:auto; padding:10px 16px; font-size:0.85rem;"
+                        onclick="openModal('vehicleModal')">
                         <i class="bi bi-plus-lg"></i> Add Vehicle
                     </button>
                 </div>
@@ -1372,7 +1481,8 @@
             <section id="tab-rentals" class="tab-panel">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
                     <h2 style="font-family:var(--font-outfit); font-size:1.1rem;">Car Rental Tariffs</h2>
-                    <button class="btn" style="width:auto; padding:10px 16px; font-size:0.85rem;" onclick="openModal('rentalModal')">
+                    <button class="btn" style="width:auto; padding:10px 16px; font-size:0.85rem;"
+                        onclick="openModal('rentalModal')">
                         <i class="bi bi-plus-lg"></i> Add Rental Car
                     </button>
                 </div>
@@ -1393,16 +1503,19 @@
             <form id="packageForm">
                 <div class="form-group">
                     <label for="packageTitle">Package Title *</label>
-                    <input type="text" id="packageTitle" class="form-input" required placeholder="e.g. Scenic Konkan Coastal Trail">
+                    <input type="text" id="packageTitle" class="form-input" required
+                        placeholder="e.g. Scenic Konkan Coastal Trail">
                 </div>
                 <div class="form-row-2">
                     <div class="form-group">
                         <label for="packageDuration">Duration *</label>
-                        <input type="text" id="packageDuration" class="form-input" required placeholder="e.g. 3 Nights / 4 Days">
+                        <input type="text" id="packageDuration" class="form-input" required
+                            placeholder="e.g. 3 Nights / 4 Days">
                     </div>
                     <div class="form-group">
                         <label for="packagePrice">Price Details *</label>
-                        <input type="text" id="packagePrice" class="form-input" required placeholder="e.g. Starting ₹6,999">
+                        <input type="text" id="packagePrice" class="form-input" required
+                            placeholder="e.g. Starting ₹6,999">
                     </div>
                 </div>
                 <div class="form-row-2">
@@ -1417,7 +1530,8 @@
                 </div>
                 <div class="form-group">
                     <label for="packageDescription">Package Description *</label>
-                    <textarea id="packageDescription" class="form-input" rows="3" required placeholder="Describe tour outline, inclusion, itinerary highlights..."></textarea>
+                    <textarea id="packageDescription" class="form-input" rows="3" required
+                        placeholder="Describe tour outline, inclusion, itinerary highlights..."></textarea>
                 </div>
                 <div class="form-group">
                     <label for="packageImage">Cover Photo Upload *</label>
@@ -1442,7 +1556,8 @@
             <form id="galleryForm">
                 <div class="form-group">
                     <label for="galleryTitle">Photo Title *</label>
-                    <input type="text" id="galleryTitle" class="form-input" required placeholder="e.g. Premium Tempo Traveller Interior">
+                    <input type="text" id="galleryTitle" class="form-input" required
+                        placeholder="e.g. Premium Tempo Traveller Interior">
                 </div>
                 <div class="form-group">
                     <label for="galleryCategory">Category *</label>
@@ -1478,7 +1593,8 @@
                 <div class="form-row-2">
                     <div class="form-group">
                         <label for="vehicleName">Vehicle Name *</label>
-                        <input type="text" id="vehicleName" class="form-input" required placeholder="e.g. Toyota Innova Crysta">
+                        <input type="text" id="vehicleName" class="form-input" required
+                            placeholder="e.g. Toyota Innova Crysta">
                     </div>
                     <div class="form-group">
                         <label for="vehicleType">Vehicle Type *</label>
@@ -1499,7 +1615,8 @@
                 <div class="form-row-2">
                     <div class="form-group">
                         <label for="vehicleCapacity">Seating Capacity *</label>
-                        <input type="number" id="vehicleCapacity" class="form-input" required min="1" max="60" placeholder="e.g. 7">
+                        <input type="number" id="vehicleCapacity" class="form-input" required min="1" max="60"
+                            placeholder="e.g. 7">
                     </div>
                     <div class="form-group">
                         <label for="vehicleFuelType">Fuel Type</label>
@@ -1527,7 +1644,8 @@
                 </div>
                 <div class="form-group">
                     <label for="vehicleFeatures">Key Features (comma-separated)</label>
-                    <input type="text" id="vehicleFeatures" class="form-input" placeholder="e.g. GPS Tracking, AC, Charging Ports">
+                    <input type="text" id="vehicleFeatures" class="form-input"
+                        placeholder="e.g. GPS Tracking, AC, Charging Ports">
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="vehicleAC" checked>
@@ -1552,10 +1670,6 @@
             <form id="rentalForm">
                 <div class="form-row-2">
                     <div class="form-group">
-                        <label for="rentalName">Vehicle Name *</label>
-                        <input type="text" id="rentalName" class="form-input" required placeholder="e.g. Maruti Suzuki Ertiga">
-                    </div>
-                    <div class="form-group">
                         <label for="rentalType">Vehicle Type *</label>
                         <select id="rentalType" class="form-input" required>
                             <option value="" disabled selected>Select type</option>
@@ -1570,36 +1684,32 @@
                             <option value="Other">Other</option>
                         </select>
                     </div>
-                </div>
-                <div class="form-row-2">
                     <div class="form-group">
                         <label for="rentalCapacity">Seating Capacity *</label>
-                        <input type="number" id="rentalCapacity" class="form-input" required min="1" max="60" placeholder="e.g. 7">
+                        <input type="number" id="rentalCapacity" class="form-input" required min="1" max="60"
+                            placeholder="e.g. 7">
                     </div>
+                </div>
+                <div class="form-row-2">
                     <div class="form-group">
                         <label for="rentalRatePerKm">Rate Per KM</label>
                         <input type="text" id="rentalRatePerKm" class="form-input" placeholder="e.g. ₹12/km">
                     </div>
-                </div>
-                <div class="form-row-2">
                     <div class="form-group">
                         <label for="rentalRatePerDay">Rate Per Day</label>
                         <input type="text" id="rentalRatePerDay" class="form-input" placeholder="e.g. ₹3,000/day">
-                    </div>
-                    <div class="form-group">
-                        <label for="rentalRatePerHour">Rate Per Hour</label>
-                        <input type="text" id="rentalRatePerHour" class="form-input" placeholder="e.g. ₹350/hr">
                     </div>
                 </div>
                 <div class="form-row-2">
                     <div class="form-group">
                         <label for="rentalMinFare">Minimum Fare</label>
-                        <input type="text" id="rentalMinFare" class="form-input" placeholder="e.g. ₹600 minimum">
+                        <input type="text" id="rentalMinFare" class="form-input" placeholder="e.g. ₹600/km">
                     </div>
-                    <div class="form-group">
-                        <label for="rentalFeatures">Key Features (comma-separated)</label>
-                        <input type="text" id="rentalFeatures" class="form-input" placeholder="e.g. Push-back seats, Music system">
-                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="rentalFeatures">Key Features (comma-separated)</label>
+                    <input type="text" id="rentalFeatures" class="form-input"
+                        placeholder="e.g. Push-back seats, Music system">
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="rentalAC" checked>
@@ -1630,7 +1740,7 @@
 
         // Global fetch interceptor to handle expired or invalid JWT tokens (401 Unauthorized)
         const originalFetch = window.fetch;
-        window.fetch = async function(...args) {
+        window.fetch = async function (...args) {
             const response = await originalFetch(...args);
             if (response.status === 401) {
                 const url = args[0] ? args[0].toString() : '';
@@ -1648,7 +1758,7 @@
         // Check if admin is logged in
         document.addEventListener('DOMContentLoaded', () => {
             initGoogleSignIn();
-            
+
             const role = localStorage.getItem('wings_role');
             if (token) {
                 if (role === 'user') {
@@ -1661,7 +1771,7 @@
                 document.getElementById('loginScreen').style.display = 'none';
                 initDashboard();
             }
-            
+
             // Tab Link listeners
             document.querySelectorAll('.sidebar-link, .bottom-nav-link').forEach(link => {
                 link.addEventListener('click', (e) => {
@@ -1700,11 +1810,11 @@
                             }, 1000);
                             return;
                         }
-                        
+
                         token = resData.token;
                         localStorage.setItem('wings_token', token);
                         localStorage.setItem('wings_role', userRole);
-                        
+
                         // Hide login screen
                         document.getElementById('loginScreen').style.opacity = 0;
                         setTimeout(() => {
@@ -1742,10 +1852,10 @@
                     inputEl.value = `₹${formattedNum}/km`;
                 } else if (type === 'per_day') {
                     inputEl.value = `₹${formattedNum}/day`;
-                } else if (type === 'per_hr') {
-                    inputEl.value = `₹${formattedNum}/hr`;
+                } else if (type === 'min_km') {
+                    inputEl.value = `${formattedNum} km`;
                 } else if (type === 'min_fare') {
-                    inputEl.value = `₹${formattedNum} minimum`;
+                    inputEl.value = `₹${formattedNum}/km`;
                 } else if (type === 'starting_price') {
                     inputEl.value = `Starting ₹${formattedNum}`;
                 }
@@ -1754,7 +1864,6 @@
             const formatConfig = [
                 { id: 'rentalRatePerKm', type: 'per_km' },
                 { id: 'rentalRatePerDay', type: 'per_day' },
-                { id: 'rentalRatePerHour', type: 'per_hr' },
                 { id: 'rentalMinFare', type: 'min_fare' },
                 { id: 'vehiclePricePerKm', type: 'per_km' },
                 { id: 'packagePrice', type: 'starting_price' }
@@ -1802,6 +1911,12 @@
                 btn.disabled = true;
                 btn.innerHTML = 'Uploading... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
+                // Format price field before submission to ensure consistent Starting prefix
+                const pkgPriceEl = document.getElementById('packagePrice');
+                if (pkgPriceEl) {
+                    formatPriceField(pkgPriceEl, 'starting_price');
+                }
+
                 const formData = new FormData();
                 formData.append('title', document.getElementById('packageTitle').value);
                 formData.append('duration', document.getElementById('packageDuration').value);
@@ -1810,7 +1925,7 @@
                 formData.append('category', document.getElementById('packageCategory').value);
                 formData.append('description', document.getElementById('packageDescription').value);
                 formData.append('isFeatured', document.getElementById('packageFeatured').checked);
-                
+
                 const imageFile = document.getElementById('packageImage').files[0];
                 if (imageFile) {
                     formData.append('image', imageFile);
@@ -1861,7 +1976,7 @@
                 formData.append('title', document.getElementById('galleryTitle').value);
                 formData.append('category', document.getElementById('galleryCategory').value);
                 formData.append('description', document.getElementById('galleryDescription').value);
-                
+
                 const imageFile = document.getElementById('galleryImage').files[0];
                 if (imageFile) {
                     formData.append('image', imageFile);
@@ -1898,7 +2013,7 @@
             });
 
             // Rental Form Listener
-            document.getElementById('rentalForm').addEventListener('submit', async function(e) {
+            document.getElementById('rentalForm').addEventListener('submit', async function (e) {
                 e.preventDefault();
                 const form = document.getElementById('rentalForm');
                 const btn = form.querySelector('button[type="submit"]');
@@ -1908,17 +2023,24 @@
                 btn.disabled = true;
                 btn.innerHTML = 'Uploading... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
+                // Format all rates fields before extracting their values to make sure suffixes are present
+                formatConfig.forEach(cfg => {
+                    const el = document.getElementById(cfg.id);
+                    if (el) {
+                        formatPriceField(el, cfg.type);
+                    }
+                });
+
                 const formData = new FormData();
-                formData.append('name', document.getElementById('rentalName').value.trim());
                 formData.append('type', document.getElementById('rentalType').value);
                 formData.append('capacity', document.getElementById('rentalCapacity').value);
                 formData.append('ac', document.getElementById('rentalAC').checked);
                 formData.append('ratePerKm', document.getElementById('rentalRatePerKm').value.trim());
                 formData.append('ratePerDay', document.getElementById('rentalRatePerDay').value.trim());
-                formData.append('ratePerHour', document.getElementById('rentalRatePerHour').value.trim());
+                formData.append('minKm', '');
                 formData.append('minFare', document.getElementById('rentalMinFare').value.trim());
                 formData.append('features', document.getElementById('rentalFeatures').value.trim());
-                
+
                 const imageFile = document.getElementById('rentalImage').files[0];
                 if (imageFile) formData.append('image', imageFile);
 
@@ -1954,24 +2076,24 @@
             try {
                 const response = await fetch(`${API_BASE}/admin/google-client-id`);
                 const resData = await response.json();
-                
+
                 if (resData.success && resData.clientId) {
                     const setupGoogle = () => {
                         if (typeof google === 'undefined') {
                             setTimeout(setupGoogle, 100);
                             return;
                         }
-                        
+
                         google.accounts.id.initialize({
                             client_id: resData.clientId,
                             callback: handleGoogleLoginResponse
                         });
-                        
+
                         google.accounts.id.renderButton(
                             document.getElementById('googleBtnContainer'),
-                            { 
-                                theme: 'dark', 
-                                size: 'large', 
+                            {
+                                theme: 'dark',
+                                size: 'large',
                                 width: document.getElementById('loginForm').offsetWidth || 340,
                                 text: 'signin_with',
                                 shape: 'rectangular'
@@ -1994,7 +2116,7 @@
         async function handleGoogleLoginResponse(response) {
             const errorDiv = document.getElementById('loginError');
             errorDiv.style.display = 'none';
-            
+
             try {
                 const res = await fetch(`${API_BASE}/admin/google-login`, {
                     method: 'POST',
@@ -2017,11 +2139,11 @@
                         }, 1000);
                         return;
                     }
-                    
+
                     token = resData.token;
                     localStorage.setItem('wings_token', token);
                     localStorage.setItem('wings_role', userRole);
-                    
+
                     // Hide login screen
                     document.getElementById('loginScreen').style.opacity = 0;
                     setTimeout(() => {
@@ -2267,14 +2389,12 @@
             form.setAttribute('data-mode', 'edit');
             form.setAttribute('data-id', id);
 
-            document.getElementById('rentalName').value = rental.name || '';
             document.getElementById('rentalType').value = rental.type || '';
             document.getElementById('rentalCapacity').value = rental.capacity || '';
             document.getElementById('rentalRatePerKm').value = rental.ratePerKm || '';
             document.getElementById('rentalRatePerDay').value = rental.ratePerDay || '';
-            document.getElementById('rentalRatePerHour').value = rental.ratePerHour || '';
             document.getElementById('rentalMinFare').value = rental.minFare || '';
-            document.getElementById('rentalFeatures').value = rental.features ? rental.features.join(', ') : '';
+            document.getElementById('rentalFeatures').value = rental.features ? (Array.isArray(rental.features) ? rental.features.join(', ') : rental.features) : '';
             document.getElementById('rentalAC').checked = rental.ac || false;
 
             document.getElementById('rentalImage').required = false;
@@ -2337,11 +2457,11 @@
                     tableBody.innerHTML = '';
                     resData.data.forEach(b => {
                         const tr = document.createElement('tr');
-                        
+
                         // WhatsApp Text Pre-filled
                         const whatsappMsg = `Hi ${b.name}, this is Wings Tours & Travels regarding your reservation inquiry. We have availability for ${b.service} on ${new Date(b.travelDate).toLocaleDateString()} for ${b.people} travelers. Let us know if we can lock it in.`;
                         const encodedMsg = encodeURIComponent(whatsappMsg);
-                        
+
                         tr.innerHTML = `
                             <td data-label="Customer">
                                 <div>
@@ -2418,7 +2538,7 @@
                     tableBody.innerHTML = '';
                     resData.data.forEach(e => {
                         const tr = document.createElement('tr');
-                        
+
                         // WhatsApp Text Pre-filled for Enquiries
                         const enquiryMsg = `Hi ${e.name}, this is Wings Tours & Travels regarding your general inquiry. Let us know how we can help you.`;
                         const encodedEnquiryMsg = encodeURIComponent(enquiryMsg);
@@ -2483,11 +2603,11 @@
         async function loadPackages() {
             const grid = document.getElementById('packagesGrid');
             grid.innerHTML = '<div class="loader"></div>';
-            
+
             try {
                 const response = await fetch(`${API_BASE}/packages`);
                 const resData = await response.json();
-                
+
                 if (resData.success && resData.data.length > 0) {
                     packagesList = resData.data;
                     grid.innerHTML = '';
@@ -2495,7 +2615,7 @@
                         const card = document.createElement('div');
                         card.className = `item-card ${!p.isActive ? 'disabled-card' : ''}`;
                         if (!p.isActive) card.style.opacity = '0.6';
-                        
+
                         card.innerHTML = `
                             <div class="item-img-wrapper">
                                 <img src="${p.imageUrl}" alt="${escapeHtml(p.title)}" class="item-img">
@@ -2559,7 +2679,7 @@
         // Delete Package
         async function deletePackage(id) {
             if (!confirm('Are you sure you want to delete this tour package? This cannot be undone.')) return;
-            
+
             try {
                 const response = await fetch(`${API_BASE}/packages/${id}`, {
                     method: 'DELETE',
@@ -2584,18 +2704,18 @@
         async function loadGallery() {
             const grid = document.getElementById('galleryGrid');
             grid.innerHTML = '<div class="loader"></div>';
-            
+
             try {
                 const response = await fetch(`${API_BASE}/gallery`);
                 const resData = await response.json();
-                
+
                 if (resData.success && resData.data.length > 0) {
                     galleryList = resData.data;
                     grid.innerHTML = '';
                     resData.data.forEach(g => {
                         const card = document.createElement('div');
                         card.className = 'item-card';
-                        
+
                         card.innerHTML = `
                             <div class="item-img-wrapper" style="height:200px;">
                                 <img src="${g.imageUrl}" alt="${escapeHtml(g.title)}" class="item-img">
@@ -2624,7 +2744,7 @@
         // Delete Gallery Item
         async function deleteGalleryItem(id) {
             if (!confirm('Are you sure you want to delete this photo from the gallery?')) return;
-            
+
             try {
                 const response = await fetch(`${API_BASE}/gallery/${id}`, {
                     method: 'DELETE',
@@ -2650,11 +2770,11 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            
+
             let icon = 'info-circle-fill';
             if (type === 'success') icon = 'check-circle-fill';
             if (type === 'error') icon = 'exclamation-triangle-fill';
-            
+
             toast.innerHTML = `
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i class="bi bi-${icon}" style="font-size:1.2rem;"></i>
@@ -2662,9 +2782,9 @@
                 </div>
                 <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
             `;
-            
+
             container.appendChild(toast);
-            
+
             // Auto remove after 4 seconds
             setTimeout(() => {
                 toast.style.animation = 'slideIn 0.3s reverse forwards';
@@ -2736,7 +2856,7 @@
         }
 
         // Vehicle Form Submit
-        document.getElementById('vehicleForm').addEventListener('submit', async function(e) {
+        document.getElementById('vehicleForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const form = document.getElementById('vehicleForm');
             const btn = form.querySelector('button[type="submit"]');
@@ -2745,6 +2865,12 @@
 
             btn.disabled = true;
             btn.innerHTML = 'Uploading... <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+
+            // Format pricePerKm before submission to ensure consistent /km suffix
+            const vehiclePriceEl = document.getElementById('vehiclePricePerKm');
+            if (vehiclePriceEl) {
+                formatPriceField(vehiclePriceEl, 'per_km');
+            }
 
             const formData = new FormData();
             formData.append('name', document.getElementById('vehicleName').value.trim());
@@ -2755,7 +2881,7 @@
             formData.append('ac', document.getElementById('vehicleAC').checked);
             formData.append('features', document.getElementById('vehicleFeatures').value.trim());
             formData.append('pricePerKm', document.getElementById('vehiclePricePerKm').value.trim());
-            
+
             const imageFile = document.getElementById('vehicleImage').files[0];
             if (imageFile) formData.append('image', imageFile);
 
@@ -2827,11 +2953,11 @@
                         card.className = 'item-card';
                         card.innerHTML = `
                             <div class="item-img-wrapper" style="height:200px;">
-                                <img src="${v.imageUrl}" alt="${escapeHtml(v.name)}" class="item-img">
+                                <img src="${v.imageUrl}" alt="${escapeHtml(v.type)}" class="item-img">
                                 <span class="item-badge" style="background-color:var(--primary); color:white;">${escapeHtml(v.type)}</span>
                             </div>
                             <div class="item-body" style="padding:14px 15px; flex-grow:0;">
-                                <h4 class="item-title" style="margin-bottom:6px;">${escapeHtml(v.name)}</h4>
+                                <h4 class="item-title" style="margin-bottom:6px;">${escapeHtml(v.type)}</h4>
                                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; font-size:0.8rem; color:var(--text-muted);">
                                     <span><i class="bi bi-people-fill" style="margin-right:4px;color:var(--primary);"></i>${v.capacity} Seater</span>
                                     <span><i class="bi bi-snow2" style="margin-right:4px;color:var(--primary);"></i>${acLabel}</span>
@@ -2839,8 +2965,8 @@
                                 <div style="display:grid; grid-template-columns:1fr; gap:4px; margin-bottom:10px; font-size:0.75rem; background:rgba(0,0,0,0.02); padding:6px; border-radius:4px;">
                                     ${v.ratePerKm ? `<span><strong>KM:</strong> ${escapeHtml(v.ratePerKm)}</span>` : ''}
                                     ${v.ratePerDay ? `<span><strong>Day:</strong> ${escapeHtml(v.ratePerDay)}</span>` : ''}
-                                    ${v.ratePerHour ? `<span><strong>Hour:</strong> ${escapeHtml(v.ratePerHour)}</span>` : ''}
-                                    ${v.minFare ? `<span><strong>Min:</strong> ${escapeHtml(v.minFare)}</span>` : ''}
+                                    ${v.minKm ? `<span><strong>Min KM:</strong> ${escapeHtml(v.minKm)}</span>` : ''}
+                                    ${v.minFare ? `<span><strong>Min Fare:</strong> ${escapeHtml(v.minFare)}</span>` : ''}
                                 </div>
                                 <div style="display:flex; justify-content:flex-end; gap:8px;">
                                     <button class="btn-icon edit" onclick="openEditRental('${v._id}')" title="Edit Rental Vehicle"><i class="bi bi-pencil-square"></i></button>
@@ -2881,4 +3007,5 @@
         }
     </script>
 </body>
+
 </html>
