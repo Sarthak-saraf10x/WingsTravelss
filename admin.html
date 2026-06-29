@@ -1652,6 +1652,9 @@
             const role = localStorage.getItem('wings_role');
             if (token) {
                 if (role === 'user') {
+                    localStorage.removeItem('wings_token');
+                    localStorage.removeItem('wings_role');
+                    token = null;
                     window.location.href = 'index.html';
                     return;
                 }
@@ -1686,18 +1689,21 @@
 
                     const resData = await response.json();
                     if (resData.success) {
-                        token = resData.token;
-                        localStorage.setItem('wings_token', token);
                         const userRole = resData.admin && resData.admin.role || 'admin';
-                        localStorage.setItem('wings_role', userRole);
-
                         if (userRole === 'user') {
+                            localStorage.removeItem('wings_token');
+                            localStorage.removeItem('wings_role');
+                            token = null;
                             showToast('Login successful! Redirecting...', 'success');
                             setTimeout(() => {
                                 window.location.href = 'index.html';
                             }, 1000);
                             return;
                         }
+                        
+                        token = resData.token;
+                        localStorage.setItem('wings_token', token);
+                        localStorage.setItem('wings_role', userRole);
                         
                         // Hide login screen
                         document.getElementById('loginScreen').style.opacity = 0;
@@ -2000,18 +2006,21 @@
 
                 const resData = await res.json();
                 if (resData.success) {
-                    token = resData.token;
-                    localStorage.setItem('wings_token', token);
                     const userRole = resData.admin && resData.admin.role || 'user';
-                    localStorage.setItem('wings_role', userRole);
-
                     if (userRole === 'user') {
+                        localStorage.removeItem('wings_token');
+                        localStorage.removeItem('wings_role');
+                        token = null;
                         showToast('Login successful! Redirecting...', 'success');
                         setTimeout(() => {
                             window.location.href = 'index.html';
                         }, 1000);
                         return;
                     }
+                    
+                    token = resData.token;
+                    localStorage.setItem('wings_token', token);
+                    localStorage.setItem('wings_role', userRole);
                     
                     // Hide login screen
                     document.getElementById('loginScreen').style.opacity = 0;
