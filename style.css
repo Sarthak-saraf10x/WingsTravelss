@@ -2252,10 +2252,17 @@ button {
     font-size: 0.9rem;
 }
 
+.footer-contact-list li span,
+.footer-contact-list li a {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
 .footer-contact-list i {
     color: var(--color-secondary);
     font-size: 1.1rem;
     margin-top: 2px;
+    flex-shrink: 0;
 }
 
 .footer-contact-list a {
@@ -2778,6 +2785,11 @@ button {
 
     .success-actions {
         flex-direction: column;
+    }
+
+    .footer-top {
+        grid-template-columns: 1fr;
+        gap: 30px;
     }
 }
 
