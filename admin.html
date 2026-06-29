@@ -2034,6 +2034,31 @@
 
         // Initialize dashboard metrics
         async function initDashboard() {
+            if (token) {
+                try {
+                    const response = await fetch(`${API_BASE}/admin/profile`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok) {
+                        localStorage.removeItem('wings_token');
+                        localStorage.removeItem('wings_role');
+                        token = null;
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    const resData = await response.json();
+                    if (!resData.success || (resData.admin && resData.admin.role !== 'admin')) {
+                        localStorage.removeItem('wings_token');
+                        localStorage.removeItem('wings_role');
+                        token = null;
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Auth verification failed:', err);
+                }
+            }
+
             updateStats();
             loadRecentBookings();
             loadBookings();
