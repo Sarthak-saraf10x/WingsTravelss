@@ -3,7 +3,17 @@ const API_URL = window.location.hostname === 'localhost' || window.location.host
     ? 'http://localhost:5000/api'
     : 'https://wings-backend-jada.onrender.com/api';
 
+/* ==========================================================================
+   BACKEND WARM-UP PING (Render Free Tier Cold Start Fix)
+   Fires immediately so backend is awake before user needs data.
+   ========================================================================== */
+if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    fetch('https://wings-backend-jada.onrender.com/api/health', { method: 'GET', cache: 'no-store' })
+        .catch(() => {}); // Silent - just waking up the server
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+
 
     /* ==========================================================================
        1. PRELOADER & SCROLL TO TOP

@@ -588,7 +588,7 @@ button {
 .hero-section {
     height: 100vh;
     min-height: 700px;
-    background-image: url('images/hero.png');
+    background-image: url('images/hero.webp');
     background-size: cover;
     background-position: center center;
     position: relative;
@@ -1175,7 +1175,7 @@ button {
     font-size: 2.5rem;
     color: var(--color-accent);
     margin-bottom: 16px;
-    display: inline-block;
+    display: block;
 }
 
 .stat-number {
@@ -2515,7 +2515,7 @@ button {
     .hero-section {
         height: auto;
         min-height: 100vh;
-        background-image: url('images/hero_portrait.png');
+        background-image: url('images/hero_portrait.webp');
         background-size: cover;
         background-position: center center;
         display: flex;
@@ -2646,7 +2646,7 @@ button {
     .hero-section {
         height: auto;
         min-height: 100dvh;
-        background-image: url('images/hero_portrait.png');
+        background-image: url('images/hero_portrait.webp');
         background-size: cover;
         background-position: center center;
         align-items: flex-start;

@@ -26,6 +26,11 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
+    <!-- Preload critical assets -->
+    <link rel="preload" as="image" href="images/Logo.webp">
+    <!-- Preconnect to backend -->
+    <link rel="preconnect" href="https://wings-backend-jada.onrender.com">
+    <link rel="dns-prefetch" href="https://wings-backend-jada.onrender.com">
     <style>
         /* Light Theme Styles for About Page */
         body {
@@ -593,7 +598,7 @@
     <!-- Preloader -->
     <div id="preloader" class="preloader">
         <div class="preloader-content">
-            <img src="images/Logo.png" alt="Wings Tours & Travels" class="preloader-logo">
+            <img src="images/Logo.webp" alt="Wings Tours & Travels" class="preloader-logo">
             <div class="spinner"></div>
         </div>
     </div>
@@ -617,7 +622,7 @@
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <a href="index.html#home" class="logo">
-                <img src="images/Logo.png" alt="Wings Tours & Travels" class="logo-img">
+                <img src="images/Logo.webp" alt="Wings Tours & Travels" class="logo-img" width="100" height="100">
             </a>
             <button class="nav-toggle" id="navToggle" aria-label="Toggle Navigation">
                 <span class="bar"></span>
@@ -681,7 +686,7 @@
         <div class="container">
             <div class="owner-card">
                 <div class="owner-image-wrap">
-                    <img src="images/siddharthGromker.jpg" alt="Siddharth Gromker - Founder of Wings Tours & Travels" class="owner-img">
+                    <img src="images/siddharthGromker.webp" alt="Siddharth Gromker - Founder of Wings Tours & Travels" class="owner-img" loading="lazy">
                     <div class="owner-info-overlay">
                         <h3 class="owner-name">Siddharth Gromker</h3>
                         <p class="owner-title">Founder & Managing Director</p>
