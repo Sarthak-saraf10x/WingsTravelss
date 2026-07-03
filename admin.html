@@ -13,6 +13,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Cropper.js - Image Crop Tool -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 
     <style>
         :root {
@@ -1180,6 +1183,177 @@
                 width: 100%;
             }
         }
+        /* ============================================
+           IMAGE CROPPER MODAL STYLES
+           ============================================ */
+        #cropperModal {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            backdrop-filter: blur(6px);
+        }
+        #cropperModal.active { display: flex; }
+        .cropper-modal-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 760px;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+        }
+        .cropper-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid #334155;
+            flex-shrink: 0;
+        }
+        .cropper-modal-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .cropper-modal-header h3 .crop-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(239,68,68,0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+        .cropper-modal-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.4rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .cropper-modal-close:hover { color: #f8fafc; background: rgba(255,255,255,0.08); }
+        .cropper-canvas-wrap {
+            flex: 1;
+            overflow: hidden;
+            background: #0f172a;
+            min-height: 0;
+            max-height: 420px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cropper-canvas-wrap img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+        .cropper-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 20px;
+            border-top: 1px solid #334155;
+            background: #162032;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+        .cropper-ctrl-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #1e293b;
+            color: #cbd5e1;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: var(--font-inter);
+            white-space: nowrap;
+        }
+        .cropper-ctrl-btn:hover { border-color: #4f6272; background: #263348; color: #f8fafc; }
+        .cropper-ctrl-btn.primary {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+            margin-left: auto;
+            padding: 9px 20px;
+        }
+        .cropper-ctrl-btn.primary:hover { background: #dc2626; border-color: #dc2626; }
+        .crop-ratio-info {
+            font-size: 0.78rem;
+            color: #64748b;
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #1e3245;
+            background: rgba(15,23,42,0.4);
+            white-space: nowrap;
+        }
+        /* Upload preview strip under file input */
+        .img-upload-preview {
+            margin-top: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px dashed #334155;
+            background: #0f172a;
+            position: relative;
+            display: none;
+        }
+        .img-upload-preview.show { display: block; }
+        .img-upload-preview img {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+        }
+        .img-upload-preview .preview-label {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(239,68,68,0.85);
+            color: white;
+            pointer-events: none;
+        }
+        .img-upload-preview .recrop-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 5px 11px;
+            border-radius: 6px;
+            border: none;
+            background: rgba(15,23,42,0.8);
+            color: #f8fafc;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+        }
+        .img-upload-preview .recrop-btn:hover { background: #ef4444; }
     </style>
 </head>
 
@@ -1536,8 +1710,15 @@
                 </div>
                 <div class="form-group">
                     <label for="packageImage">Cover Photo Upload *</label>
-                    <input type="file" id="packageImage" class="form-input" required accept="image/*">
-                    <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Recommended size: 800x600 pixels (4:3 ratio) or landscape flyers. <a href="javascript:void(0)" onclick="helpResizeImage('package')" style="color: var(--primary); text-decoration: underline; margin-left: 8px; font-weight: 500;"><i class="bi bi-magic"></i> Help me resize with ChatGPT</a></small>
+                    <input type="file" id="packageImage" class="form-input" accept="image/*"
+                        onchange="initCropper(this, 'package')">
+                    <div class="img-upload-preview" id="packageImagePreview">
+                        <img id="packageImagePreviewImg" src="" alt="Preview" style="height:180px;">
+                        <span class="preview-label">✓ Cropped 4:3</span>
+                        <button type="button" class="recrop-btn" onclick="reCrop('package')">
+                            <i class="bi bi-crop"></i> Re-crop
+                        </button>
+                    </div>
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox" id="packageFeatured" checked>
@@ -1577,8 +1758,15 @@
                 </div>
                 <div class="form-group">
                     <label for="galleryImage">Select Image File *</label>
-                    <input type="file" id="galleryImage" class="form-input" required accept="image/*">
-                    <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Recommended width: 800-1200 pixels. Supports both portrait and landscape (masonry layout). <a href="javascript:void(0)" onclick="helpResizeImage('gallery')" style="color: var(--primary); text-decoration: underline; margin-left: 8px; font-weight: 500;"><i class="bi bi-magic"></i> Help me optimize with ChatGPT</a></small>
+                    <input type="file" id="galleryImage" class="form-input" accept="image/*"
+                        onchange="initCropper(this, 'gallery')">
+                    <div class="img-upload-preview" id="galleryImagePreview">
+                        <img id="galleryImagePreviewImg" src="" alt="Preview" style="height:180px;">
+                        <span class="preview-label">✓ Cropped 1:1</span>
+                        <button type="button" class="recrop-btn" onclick="reCrop('gallery')">
+                            <i class="bi bi-crop"></i> Re-crop
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn">Upload Photo <i class="bi bi-cloud-arrow-up-fill"></i></button>
             </form>
@@ -1656,8 +1844,15 @@
                 </div>
                 <div class="form-group">
                     <label for="vehicleImage">Vehicle Photo *</label>
-                    <input type="file" id="vehicleImage" class="form-input" required accept="image/*">
-                    <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Recommended size: 800x500 pixels (landscape). Side-profile or front 3/4 view of the vehicle is best. <a href="javascript:void(0)" onclick="helpResizeImage('vehicle')" style="color: var(--primary); text-decoration: underline; margin-left: 8px; font-weight: 500;"><i class="bi bi-magic"></i> Help me resize with ChatGPT</a></small>
+                    <input type="file" id="vehicleImage" class="form-input" accept="image/*"
+                        onchange="initCropper(this, 'vehicle')">
+                    <div class="img-upload-preview" id="vehicleImagePreview">
+                        <img id="vehicleImagePreviewImg" src="" alt="Preview" style="height:160px;">
+                        <span class="preview-label">✓ Cropped 16:10</span>
+                        <button type="button" class="recrop-btn" onclick="reCrop('vehicle')">
+                            <i class="bi bi-crop"></i> Re-crop
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn">Add to Fleet <i class="bi bi-plus-circle"></i></button>
             </form>
@@ -1721,11 +1916,52 @@
                 </div>
                 <div class="form-group">
                     <label for="rentalImage">Vehicle Photo *</label>
-                    <input type="file" id="rentalImage" class="form-input" required accept="image/*">
-                    <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Recommended size: 800x500 pixels (landscape). Side-profile or front 3/4 view of the vehicle is best. <a href="javascript:void(0)" onclick="helpResizeImage('vehicle')" style="color: var(--primary); text-decoration: underline; margin-left: 8px; font-weight: 500;"><i class="bi bi-magic"></i> Help me resize with ChatGPT</a></small>
+                    <input type="file" id="rentalImage" class="form-input" accept="image/*"
+                        onchange="initCropper(this, 'rental')">
+                    <div class="img-upload-preview" id="rentalImagePreview">
+                        <img id="rentalImagePreviewImg" src="" alt="Preview" style="height:160px;">
+                        <span class="preview-label">✓ Cropped 16:10</span>
+                        <button type="button" class="recrop-btn" onclick="reCrop('rental')">
+                            <i class="bi bi-crop"></i> Re-crop
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="btn">Add to Rentals <i class="bi bi-plus-circle"></i></button>
             </form>
+        </div>
+    </div>
+
+    <!-- ==================== IMAGE CROPPER MODAL ==================== -->
+    <div id="cropperModal">
+        <div class="cropper-modal-card">
+            <div class="cropper-modal-header">
+                <h3>
+                    <i class="bi bi-crop"></i> Crop Image
+                    <span class="crop-badge" id="cropRatioBadge">4:3</span>
+                </h3>
+                <button class="cropper-modal-close" onclick="cancelCrop()" title="Cancel">&times;</button>
+            </div>
+            <div class="cropper-canvas-wrap" id="cropperCanvasWrap">
+                <img id="cropperImg" src="" alt="Crop Preview">
+            </div>
+            <div class="cropper-controls">
+                <button class="cropper-ctrl-btn" onclick="cropperInstance.zoom(0.1)" title="Zoom In">
+                    <i class="bi bi-zoom-in"></i> Zoom In
+                </button>
+                <button class="cropper-ctrl-btn" onclick="cropperInstance.zoom(-0.1)" title="Zoom Out">
+                    <i class="bi bi-zoom-out"></i> Zoom Out
+                </button>
+                <button class="cropper-ctrl-btn" onclick="cropperInstance.rotate(-90)" title="Rotate Left">
+                    <i class="bi bi-arrow-counterclockwise"></i> Rotate
+                </button>
+                <button class="cropper-ctrl-btn" onclick="cropperInstance.reset()" title="Reset">
+                    <i class="bi bi-arrow-repeat"></i> Reset
+                </button>
+                <span class="crop-ratio-info" id="cropRatioInfo">Aspect Ratio: 4:3 (800×600)</span>
+                <button class="cropper-ctrl-btn primary" onclick="applyCrop()">
+                    <i class="bi bi-check-circle-fill"></i> Use Cropped Image
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1742,6 +1978,146 @@
         let galleryList = [];
         let vehiclesList = [];
         let rentalsList = [];
+
+        /* ==========================================================================
+           IMAGE CROPPER ENGINE
+           - Aspect ratios: package=4:3 | gallery=1:1 | vehicle=16:10 | rental=16:10
+           - Stores cropped Blob in croppedBlobs map keyed by section type
+           - Form submit handlers read from croppedBlobs instead of raw file input
+        ========================================================================== */
+        let cropperInstance = null;
+        let currentCropType = null;
+        let currentRawFile = null;
+        const croppedBlobs = { package: null, gallery: null, vehicle: null, rental: null };
+
+        const CROP_CONFIG = {
+            package: { ratio: 4/3,  label: '4:3',   info: 'Aspect Ratio: 4:3  (800×600 — Tour Package Card)',    output: { width: 800, height: 600  } },
+            gallery: { ratio: 1/1,  label: '1:1',   info: 'Aspect Ratio: 1:1  (800×800 — Gallery Grid Square)',   output: { width: 800, height: 800  } },
+            vehicle: { ratio: 16/10, label: '16:10', info: 'Aspect Ratio: 16:10 (800×500 — Fleet Vehicle Card)',  output: { width: 800, height: 500  } },
+            rental:  { ratio: 16/10, label: '16:10', info: 'Aspect Ratio: 16:10 (800×500 — Rental Tariff Card)', output: { width: 800, height: 500  } },
+        };
+
+        function initCropper(inputEl, type) {
+            const file = inputEl.files[0];
+            if (!file) return;
+            currentCropType = type;
+            currentRawFile  = file;
+            // Clear old blob so form doesn't reuse stale crop
+            croppedBlobs[type] = null;
+            const previewEl = document.getElementById(type + 'ImagePreview');
+            if (previewEl) previewEl.classList.remove('show');
+
+            const reader = new FileReader();
+            reader.onload = (e) => openCropperModal(e.target.result, type);
+            reader.readAsDataURL(file);
+        }
+
+        function openCropperModal(src, type) {
+            const config = CROP_CONFIG[type];
+            // Update UI labels
+            document.getElementById('cropRatioBadge').textContent = config.label;
+            document.getElementById('cropRatioInfo').textContent  = config.info;
+
+            const img = document.getElementById('cropperImg');
+            img.src = src;
+
+            // Destroy old instance
+            if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+
+            document.getElementById('cropperModal').classList.add('active');
+
+            // Wait for image to load then init Cropper.js
+            img.onload = () => {
+                cropperInstance = new Cropper(img, {
+                    aspectRatio: config.ratio,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.9,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                    background: true,
+                });
+            };
+            // If already loaded (data URLs load instantly)
+            if (img.complete) img.onload();
+        }
+
+        function applyCrop() {
+            if (!cropperInstance || !currentCropType) return;
+            const config = CROP_CONFIG[currentCropType];
+            const canvas = cropperInstance.getCroppedCanvas({
+                width:  config.output.width,
+                height: config.output.height,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            canvas.toBlob((blob) => {
+                croppedBlobs[currentCropType] = blob;
+                // Show preview
+                const previewWrap = document.getElementById(currentCropType + 'ImagePreview');
+                const previewImg  = document.getElementById(currentCropType + 'ImagePreviewImg');
+                if (previewWrap && previewImg) {
+                    previewImg.src = canvas.toDataURL('image/jpeg', 0.92);
+                    previewWrap.classList.add('show');
+                }
+                showToast('Image cropped and ready! Fill in the other details and submit.', 'success');
+                closeCropperModal();
+            }, 'image/jpeg', 0.92);
+        }
+
+        function cancelCrop() {
+            closeCropperModal();
+            // Reset the file input if no crop was applied
+            if (!croppedBlobs[currentCropType]) {
+                const inputId = currentCropType + 'Image';
+                const el = document.getElementById(inputId);
+                if (el) el.value = '';
+            }
+        }
+
+        function closeCropperModal() {
+            document.getElementById('cropperModal').classList.remove('active');
+            if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+        }
+
+        function reCrop(type) {
+            if (!currentRawFile && !croppedBlobs[type]) return;
+            currentCropType = type;
+            // Re-read the raw original file
+            const inputEl = document.getElementById(type + 'Image');
+            if (inputEl && inputEl.files[0]) {
+                currentRawFile = inputEl.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => openCropperModal(e.target.result, type);
+                reader.readAsDataURL(currentRawFile);
+            } else if (currentRawFile) {
+                const reader = new FileReader();
+                reader.onload = (e) => openCropperModal(e.target.result, type);
+                reader.readAsDataURL(currentRawFile);
+            }
+        }
+
+        // Helper: get image file for form submission (cropped blob OR raw file as fallback)
+        function getImageForSubmit(type) {
+            const blob = croppedBlobs[type];
+            if (blob) {
+                return new File([blob], 'image.jpg', { type: 'image/jpeg' });
+            }
+            const inputEl = document.getElementById(type + 'Image');
+            return inputEl && inputEl.files[0] ? inputEl.files[0] : null;
+        }
+
+        // Reset cropper state when a modal is closed
+        function resetCropperState(type) {
+            croppedBlobs[type] = null;
+            const previewEl = document.getElementById(type + 'ImagePreview');
+            if (previewEl) previewEl.classList.remove('show');
+        }
 
         // Copy ChatGPT resize prompt and open ChatGPT
         function helpResizeImage(type) {
@@ -1954,7 +2330,7 @@
                 formData.append('description', document.getElementById('packageDescription').value);
                 formData.append('isFeatured', document.getElementById('packageFeatured').checked);
 
-                const imageFile = document.getElementById('packageImage').files[0];
+                const imageFile = getImageForSubmit('package');
                 if (imageFile) {
                     formData.append('image', imageFile);
                 }
@@ -1976,6 +2352,7 @@
                         showToast(mode === 'edit' ? 'Package updated successfully!' : 'Package created successfully!', 'success');
                         closeModal('packageModal');
                         form.reset();
+                        resetCropperState('package');
                         loadPackages();
                         updateStats();
                     } else {
@@ -2005,7 +2382,7 @@
                 formData.append('category', document.getElementById('galleryCategory').value);
                 formData.append('description', document.getElementById('galleryDescription').value);
 
-                const imageFile = document.getElementById('galleryImage').files[0];
+                const imageFile = getImageForSubmit('gallery');
                 if (imageFile) {
                     formData.append('image', imageFile);
                 }
@@ -2027,6 +2404,7 @@
                         showToast(mode === 'edit' ? 'Photo updated successfully!' : 'Photo uploaded successfully!', 'success');
                         closeModal('galleryModal');
                         form.reset();
+                        resetCropperState('gallery');
                         loadGallery();
                         updateStats();
                     } else {
@@ -2069,7 +2447,7 @@
                 formData.append('minFare', document.getElementById('rentalMinFare').value.trim());
                 formData.append('features', document.getElementById('rentalFeatures').value.trim());
 
-                const imageFile = document.getElementById('rentalImage').files[0];
+                const imageFile = getImageForSubmit('rental');
                 if (imageFile) formData.append('image', imageFile);
 
                 try {
@@ -2083,9 +2461,10 @@
                     });
                     const data = await response.json();
                     if (data.success) {
-                        showToast(mode === 'edit' ? 'Rental vehicle updated successfully!' : 'Rental vehicle added successfully!', 'success');
+                        showToast(mode === 'edit' ? 'Rental vehicle updated!' : 'Rental vehicle added successfully!', 'success');
                         closeModal('rentalModal');
                         this.reset();
+                        resetCropperState('rental');
                         loadRentals();
                     } else {
                         showToast(data.message || `Error ${mode === 'edit' ? 'updating' : 'adding'} rental vehicle`, 'error');
@@ -2330,6 +2709,9 @@
 
         function closeModal(id) {
             document.getElementById(id).classList.remove('active');
+            // Clear any pending crop preview for the relevant modal
+            const typeMap = { packageModal: 'package', galleryModal: 'gallery', vehicleModal: 'vehicle', rentalModal: 'rental' };
+            if (typeMap[id]) resetCropperState(typeMap[id]);
         }
 
         function openEditPackage(id) {
@@ -2910,7 +3292,7 @@
             formData.append('features', document.getElementById('vehicleFeatures').value.trim());
             formData.append('pricePerKm', document.getElementById('vehiclePricePerKm').value.trim());
 
-            const imageFile = document.getElementById('vehicleImage').files[0];
+            const imageFile = getImageForSubmit('vehicle');
             if (imageFile) formData.append('image', imageFile);
 
             try {
@@ -2927,6 +3309,7 @@
                     showToast(mode === 'edit' ? 'Vehicle details updated successfully!' : 'Vehicle added to fleet successfully!', 'success');
                     closeModal('vehicleModal');
                     this.reset();
+                    resetCropperState('vehicle');
                     loadVehicles();
                 } else {
                     showToast(data.message || `Error ${mode === 'edit' ? 'updating' : 'adding'} vehicle`, 'error');
