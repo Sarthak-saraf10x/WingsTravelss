@@ -1,0 +1,1631 @@
+/* ==========================================================================
+   FLEET AGGREGATOR BOOKINGS & DISPATCH MODULE LOGIC
+   ========================================================================== */
+
+const STATUS_CONFIG = {
+    NO_TIMING: {
+        label: 'No Timing',
+        bg: '#F1F3F5',
+        text: '#495057',
+        border: '#DEE2E6',
+        rowClass: 'row-no-timing',
+        badgeClass: 'st-no-timing'
+    },
+    STATUS_NO: {
+        label: 'Status NO',
+        bg: '#FCE8D8',
+        text: '#8A3B00',
+        border: '#F7D5BA',
+        rowClass: 'row-status-no',
+        badgeClass: 'st-status-no'
+    },
+    STATUS_YES: {
+        label: 'Status YES',
+        bg: '#DDF4E4',
+        text: '#136329',
+        border: '#A8DFB8',
+        rowClass: 'row-status-yes',
+        badgeClass: 'st-status-yes'
+    },
+    STATUS_CANCEL: {
+        label: 'Status CANCEL',
+        bg: '#FAD2CF',
+        text: '#9C1C14',
+        border: '#F28B82',
+        rowClass: 'row-status-cancel',
+        badgeClass: 'st-status-cancel'
+    },
+    DR_DUTY_ACCPT: {
+        label: 'DR DUTY ACCPT',
+        bg: '#D6EEFC',
+        text: '#0B5A8A',
+        border: '#A6D8F5',
+        rowClass: 'row-dr-duty-accpt',
+        badgeClass: 'st-dr-duty-accpt'
+    },
+    DR_DUTY_START: {
+        label: 'DR DUTY START',
+        bg: '#B8DFF8',
+        text: '#08436B',
+        border: '#6BB8EB',
+        rowClass: 'row-dr-duty-start',
+        badgeClass: 'st-dr-duty-start'
+    },
+    DR_DUTY_CLOSE: {
+        label: 'DR DUTY CLOSE',
+        bg: '#9BC7E8',
+        text: '#052F4E',
+        border: '#4A90C2',
+        rowClass: 'row-dr-duty-close',
+        badgeClass: 'st-dr-duty-close'
+    }
+};
+
+let bookingsList = [];
+let selectedBookingFilterStatus = 'ALL';
+let currentActiveBooking = null;
+let currentDutyCloseBooking = null;
+
+// =========================================================================
+// 1. STATUS DERIVATION & COMPLETENESS RULES
+// =========================================================================
+
+function computeBookingStatusClient(b) {
+    if (b.status === 'STATUS_CANCEL' || b.cancelled) {
+        if (b.cancelReason && b.cancelReason.trim().length > 0) {
+            return 'STATUS_CANCEL';
+        }
+    }
+
+    if (b.dutyClosed || b.dutySlipUploaded || b.status === 'DR_DUTY_CLOSE') {
+        return 'DR_DUTY_CLOSE';
+    }
+
+    if (b.dutyStarted || b.status === 'DR_DUTY_START') {
+        return 'DR_DUTY_START';
+    }
+
+    const hasPlotting = Boolean(
+        (b.vendorName || b.vendorId) &&
+        b.vehicleNumber && String(b.vehicleNumber).trim().length > 0 &&
+        b.driverName && String(b.driverName).trim().length > 0
+    );
+
+    if (hasPlotting && (b.driverAccepted === true || String(b.driverAccepted).toUpperCase() === 'YES')) {
+        return 'DR_DUTY_ACCPT';
+    }
+
+    const hasTiming = Boolean(
+        !b.noTiming &&
+        (
+            (b.reqTime && String(b.reqTime).trim().length > 0) ||
+            (b.repHours && String(b.repHours).trim().length > 0)
+        )
+    );
+
+    if (!hasTiming || b.noTiming) {
+        return 'NO_TIMING';
+    }
+
+    const hasCore = Boolean(
+        (b.clientName || b.clientId) &&
+        b.travelDate &&
+        b.guestName && String(b.guestName).trim().length > 0 &&
+        b.vehicleType && String(b.vehicleType).trim().length > 0 &&
+        b.packageType && String(b.packageType).trim().length > 0
+    );
+
+    if (!hasCore || !hasPlotting) {
+        return 'STATUS_NO';
+    }
+
+    return 'STATUS_YES';
+}
+
+function getMissingChecklist(b) {
+    const missing = [];
+    if (b.noTiming || (!b.reqTime && !b.repHours)) missing.push('Pickup Time');
+    if (!b.clientName && !b.clientId) missing.push('Client Company');
+    if (!b.travelDate) missing.push('Travel Date');
+    if (!b.guestName || !String(b.guestName).trim()) missing.push('Guest Name');
+    if (!b.vehicleType || !String(b.vehicleType).trim()) missing.push('Vehicle Type');
+    if (!b.packageType || !String(b.packageType).trim()) missing.push('Package');
+    if (!b.vendorName && !b.vendorId) missing.push('Vendor');
+    if (!b.vehicleNumber || !String(b.vehicleNumber).trim()) missing.push('Car / Car No');
+    if (!b.driverName || !String(b.driverName).trim()) missing.push('Driver Name');
+    if (!b.driverAccepted) missing.push('Driver Acceptance');
+    return missing;
+}
+
+function getStatusBadgeHtml(statusKey) {
+    const conf = STATUS_CONFIG[statusKey] || STATUS_CONFIG.NO_TIMING;
+    return `<span class="st-badge ${conf.badgeClass}">${conf.label}</span>`;
+}
+
+// =========================================================================
+// 2. LOAD & RENDER BOOKINGS CHART
+// =========================================================================
+
+async function loadBookings() {
+    const fromDate = document.getElementById('bkFilterFromDate')?.value || '';
+    const toDate = document.getElementById('bkFilterToDate')?.value || '';
+    const clientId = document.getElementById('bkFilterClient')?.value || 'ALL';
+    const location = document.getElementById('bkFilterLocation')?.value || 'ALL';
+    const search = document.getElementById('bkFilterSearch')?.value?.trim() || '';
+
+    let url = `${API_BASE}/aggregator/bookings?status=${selectedBookingFilterStatus}&`;
+    if (fromDate) url += `fromDate=${fromDate}&`;
+    if (toDate) url += `toDate=${toDate}&`;
+    if (clientId !== 'ALL') url += `clientId=${encodeURIComponent(clientId)}&`;
+    if (location !== 'ALL') url += `location=${encodeURIComponent(location)}&`;
+    if (search) url += `search=${encodeURIComponent(search)}&`;
+
+    const res = await fetchAuth(url);
+    if (res && res.success && Array.isArray(res.data)) {
+        bookingsList = res.data;
+    } else if (!bookingsList.length && typeof getFallbackBookings === 'function') {
+        bookingsList = getFallbackBookings();
+    }
+    renderBookingStatusLegend();
+    renderBookingsTable();
+    updateBookingsSidebarBadge();
+}
+
+function updateBookingsSidebarBadge() {
+    const badge = document.getElementById('countBadgeBookings');
+    if (badge) badge.textContent = bookingsList.length;
+}
+
+function renderBookingStatusLegend() {
+    const ribbon = document.getElementById('statusLegendRibbon');
+    if (!ribbon) return;
+
+    // Count bookings per status
+    const counts = { ALL: bookingsList.length };
+    Object.keys(STATUS_CONFIG).forEach(k => counts[k] = 0);
+    bookingsList.forEach(b => {
+        const st = b.status || 'NO_TIMING';
+        if (counts[st] !== undefined) counts[st]++;
+    });
+
+    let html = `<div class="legend-title"><i class="bi bi-funnel-fill"></i> Filter Status:</div>`;
+    html += `
+        <div class="legend-pill ${selectedBookingFilterStatus === 'ALL' ? 'active' : ''}"
+             style="background:#f1f5f9; color:#0f172a;" onclick="selectStatusFilter('ALL')">
+            <span>ALL</span>
+            <span class="counter">${counts.ALL}</span>
+        </div>
+    `;
+
+    Object.entries(STATUS_CONFIG).forEach(([key, cfg]) => {
+        const isActive = selectedBookingFilterStatus === key;
+        html += `
+            <div class="legend-pill ${cfg.badgeClass} ${isActive ? 'active' : ''}"
+                 onclick="selectStatusFilter('${key}')" title="Click to filter by ${cfg.label}">
+                <span>${cfg.label}</span>
+                <span class="counter">${counts[key] || 0}</span>
+            </div>
+        `;
+    });
+
+    ribbon.innerHTML = html;
+}
+
+function selectStatusFilter(statusKey) {
+    selectedBookingFilterStatus = statusKey;
+    const filterSelect = document.getElementById('bkFilterStatusSelect');
+    if (filterSelect) filterSelect.value = statusKey;
+    loadBookings();
+}
+
+function findBookingInList(idOrNo) {
+    if (!idOrNo) return null;
+    const s = String(idOrNo).trim();
+    const rawNo = s.replace('mock_bk_', '');
+    return bookingsList.find(x => 
+        (x._id && String(x._id) === s) ||
+        (x.bookingNo && String(x.bookingNo) === s) ||
+        (x.dutySlipNo && String(x.dutySlipNo) === s) ||
+        (x.bookingNo && String(x.bookingNo) === rawNo) ||
+        (x.dutySlipNo && String(x.dutySlipNo) === rawNo) ||
+        (x._id && String(x._id).replace('mock_bk_', '') === rawNo)
+    ) || null;
+}
+
+function renderBookingsTable() {
+    const tbody = document.getElementById('bookingsTableBody');
+    if (!tbody) return;
+
+    if (!bookingsList.length) {
+        tbody.innerHTML = `<tr><td colspan="13" style="text-align:center; padding:45px; color:#94a3b8;">
+            <i class="bi bi-calendar-x" style="font-size:2rem; display:block; margin-bottom:8px;"></i>
+            No bookings found for the selected filters. Click "+ New Booking" to create one.
+        </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = bookingsList.map(b => {
+        const st = b.status || 'NO_TIMING';
+        const conf = STATUS_CONFIG[st] || STATUS_CONFIG.NO_TIMING;
+        const rowClass = conf.rowClass;
+
+        const travelDateFormatted = b.travelDate
+            ? new Date(b.travelDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : '<span style="color:#94a3b8;">Date pending</span>';
+
+        const reqTimeDisplay = b.noTiming
+            ? '<span style="color:#64748b; font-style:italic;">No Timing</span>'
+            : (b.reqTime || (b.repHours ? `${b.repHours}:${b.repMinutes || '00'}` : '<span style="color:#dc2626; font-weight:600;">Missing</span>'));
+
+        const drAcptBadge = (b.driverAccepted === true || String(b.driverAccepted).toUpperCase() === 'YES')
+            ? '<span class="badge badge-green" style="font-weight:700;">YES</span>'
+            : '<span class="badge badge-gray" style="font-weight:600;">NO</span>';
+
+        // Direct WhatsApp message link for guest or driver
+        const cleanDrvPhone = (b.driverPhone || '').replace(/[^0-9]/g, '');
+        const drvWaUrl = cleanDrvPhone ? `https://wa.me/${cleanDrvPhone}?text=${encodeURIComponent(`Wings Travels Duty Slip #${b.dutySlipNo}: Pickup for ${b.guestName} on ${travelDateFormatted} at ${b.reqTime || ''}. Vehicle: ${b.vehicleNumber || ''}`)}` : '#';
+
+        const bkIdentifier = b._id || b.bookingNo || b.dutySlipNo || '';
+
+        return `
+            <tr class="${rowClass}">
+                <td style="font-weight:700; white-space:nowrap;">
+                    <a href="javascript:void(0)" onclick="openBookingSheet('${bkIdentifier}')" style="color:#0f172a; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                        <i class="bi bi-box-arrow-up-right" style="font-size:0.75rem; color:#ea580c;"></i>
+                        <span>#${b.dutySlipNo || b.bookingNo}</span>
+                    </a>
+                </td>
+                <td style="white-space:nowrap;">${travelDateFormatted}</td>
+                <td style="white-space:nowrap;">${reqTimeDisplay}</td>
+                <td>
+                    <strong style="color:#0f172a; font-size:0.86rem; display:block;">${b.clientName || '<span style="color:#dc2626;">Missing Client</span>'}</strong>
+                    ${b.bookedBy ? `<span style="font-size:0.72rem; color:#64748b;">By: ${b.bookedBy}</span>` : ''}
+                </td>
+                <td>
+                    <div style="font-weight:600; color:#0f172a;">${b.guestName || '<span style="color:#dc2626;">Missing Guest</span>'}</div>
+                    ${b.guestPhone ? `<span style="font-size:0.72rem; color:#475569;">${b.guestPhone}</span>` : ''}
+                </td>
+                <td><span class="badge badge-gray">${b.vehicleType || '<span style="color:#dc2626;">Pending</span>'}</span></td>
+                <td><span style="font-size:0.78rem; font-weight:600;">${b.packageType || '-'}</span></td>
+                <td>
+                    ${b.vehicleNumber ? `<strong style="font-family:monospace; color:#0f172a;">${b.vehicleNumber}</strong>` : '<span style="color:#94a3b8; font-size:0.75rem;">Not Plotted</span>'}
+                </td>
+                <td>
+                    ${b.driverName ? `<div>${b.driverName}</div>` : '<span style="color:#94a3b8; font-size:0.75rem;">Not Plotted</span>'}
+                </td>
+                <td>${getStatusBadgeHtml(st)}</td>
+                <td style="text-align:center;">${drAcptBadge}</td>
+                <td><span style="font-size:0.78rem; color:#64748b;">${b.location || 'Pune'}</span></td>
+                <td style="text-align:right; white-space:nowrap;">
+                    <div style="display:inline-flex; gap:4px;">
+                        <button class="btn btn-outline btn-icon" onclick="openBookingSheet('${bkIdentifier}')" title="Open Full Booking & Plotting Sheet">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-outline btn-icon" onclick="openDutyCloseModal('${bkIdentifier}')" title="Duty Close & Generate Invoice" style="color:#0284c7;">
+                            <i class="bi bi-receipt-cutoff"></i>
+                        </button>
+                        <button class="btn btn-outline btn-icon" onclick="openPrintDutySlipModal('${bkIdentifier}')" title="Print Duty Slip">
+                            <i class="bi bi-printer"></i>
+                        </button>
+                        ${cleanDrvPhone ? `
+                            <a href="${drvWaUrl}" target="_blank" class="btn btn-outline btn-icon" title="WhatsApp to Driver" style="color:#16a34a;">
+                                <i class="bi bi-whatsapp"></i>
+                            </a>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Populate Client Company Dropdown inside filter & forms
+function populateClientCompanyDropdowns() {
+    const filterSelect = document.getElementById('bkFilterClient');
+    const formSelect = document.getElementById('sheetClientSelect');
+    if (!companiesList.length) return;
+
+    let filterOptions = `<option value="ALL">All Clients</option>`;
+    let formOptions = `<option value="">-- Select Client Company --</option>`;
+
+    companiesList.forEach(c => {
+        filterOptions += `<option value="${c._id}">${c.companyName}</option>`;
+        formOptions += `<option value="${c._id}" data-state="${c.stateCode}" data-credit="${c.creditPeriodDays}">${c.companyName}</option>`;
+    });
+
+    if (filterSelect) filterSelect.innerHTML = filterOptions;
+    if (formSelect) formSelect.innerHTML = formOptions;
+}
+
+// Populate Vendor Dropdown inside Plotting section
+function populateVendorDropdown() {
+    const vendorSelect = document.getElementById('sheetVendorSelect');
+    if (!vendorSelect || !vendorsList.length) return;
+
+    let options = `<option value="">-- Select Vendor / Supplier --</option>`;
+    vendorsList.forEach(v => {
+        options += `<option value="${v._id}">${v.vendorName} (${v.contactPerson})</option>`;
+    });
+    options += `<option value="ADHOC">+ Ad-hoc / Other Supplier</option>`;
+    vendorSelect.innerHTML = options;
+}
+
+// =========================================================================
+// 3. BOOKING & PLOTTING DETAIL SHEET MODAL
+// =========================================================================
+
+function openNewBookingSheet() {
+    currentActiveBooking = {
+        _id: '',
+        bookingNo: 'AUTO',
+        dutySlipNo: 'AUTO',
+        status: 'NO_TIMING',
+        isManualStatus: false,
+        noTiming: true,
+        travelDate: new Date().toISOString().split('T')[0],
+        extraGuests: [],
+        driverAccepted: false,
+        dutyStarted: false,
+        dutyClosed: false
+    };
+
+    renderBookingSheetForm(currentActiveBooking);
+    const hiddenIdEl = document.getElementById('sheetHiddenId');
+    if (hiddenIdEl) hiddenIdEl.value = '';
+    openModal('bookingDetailModal');
+}
+
+function openBookingSheet(bookingId) {
+    if (!bookingId) return;
+    const b = findBookingInList(bookingId);
+    if (!b) return;
+
+    currentActiveBooking = JSON.parse(JSON.stringify(b));
+    renderBookingSheetForm(currentActiveBooking);
+    openModal('bookingDetailModal');
+}
+
+function renderBookingSheetForm(b) {
+    // Populate dropdowns first
+    populateClientCompanyDropdowns();
+    populateVendorDropdown();
+
+    // Banner Details
+    const dsNo = b.dutySlipNo || b.bookingNo || 'AUTO';
+    document.getElementById('sheetDsNoDisplay').textContent = dsNo === 'AUTO' ? 'Next Sequence' : `#${dsNo}`;
+    document.getElementById('sheetHiddenId').value = b._id || b.bookingNo || '';
+
+    // Quick Driver Acceptance in Header
+    const drAcptToggle = document.getElementById('sheetHeaderDrAcpt');
+    if (drAcptToggle) drAcptToggle.checked = Boolean(b.driverAccepted);
+
+    // Form fields
+    document.getElementById('sheetTravelDate').value = b.travelDate ? b.travelDate.split('T')[0] : '';
+    document.getElementById('sheetEndDate').value = b.endDate ? b.endDate.split('T')[0] : '';
+
+    document.getElementById('sheetRepHours').value = b.repHours || (b.reqTime ? b.reqTime.split(':')[0] : '');
+    document.getElementById('sheetRepMinutes').value = b.repMinutes || (b.reqTime && b.reqTime.includes(':') ? b.reqTime.split(':')[1] : '');
+    document.getElementById('sheetOffHours').value = b.offHours || '';
+    document.getElementById('sheetOffMinutes').value = b.offMinutes || '';
+    document.getElementById('sheetNoTimingCheck').checked = Boolean(b.noTiming);
+    document.getElementById('sheetTimingNotes').value = b.timingNotes || '';
+
+    // Client
+    if (b.clientId) {
+        document.getElementById('sheetClientSelect').value = b.clientId;
+    } else {
+        const match = companiesList.find(c => c.companyName === b.clientName);
+        if (match) document.getElementById('sheetClientSelect').value = match._id;
+    }
+    document.getElementById('sheetLocation').value = b.location || 'Pune';
+    document.getElementById('sheetBookedBy').value = b.bookedBy || '';
+    document.getElementById('sheetBookedByPhone').value = b.bookedByPhone || '';
+
+    // Vehicle & Package
+    document.getElementById('sheetVehicleType').value = b.vehicleType || '';
+    document.getElementById('sheetPackageType').value = b.packageType || '';
+    document.getElementById('sheetDestination').value = b.destination || 'Local Disposal';
+    document.getElementById('sheetDutyRefNo').value = b.dutyRefNo || '';
+    document.getElementById('sheetRemarks').value = b.remarks || '';
+
+    // Guest Info
+    document.getElementById('sheetGuestName').value = b.guestName || '';
+    document.getElementById('sheetGuestPhone').value = b.guestPhone || '';
+    document.getElementById('sheetReportingAddr').value = b.reportingAddress || '';
+    document.getElementById('sheetDropAddr').value = b.dropAddress || '';
+
+    // Passenger Rows
+    renderPassengerRows(b.extraGuests || []);
+
+    // Plotting Details
+    if (b.vendorId) {
+        document.getElementById('sheetVendorSelect').value = b.vendorId;
+    } else {
+        document.getElementById('sheetVendorSelect').value = b.vendorName ? 'ADHOC' : '';
+    }
+    document.getElementById('sheetVendorPackage').value = b.vendorPackage || '';
+    document.getElementById('sheetVendorPenalty').value = b.vendorPenalty || 0;
+    document.getElementById('sheetVendorFixRate').value = b.vendorFixRate || 0;
+    document.getElementById('sheetVendorKmRate').value = b.vendorKmRate || 0;
+    document.getElementById('sheetCashToVendor').value = b.cashToVendor || 0;
+    document.getElementById('sheetDriverName').value = b.driverName || '';
+    document.getElementById('sheetDriverPhone').value = b.driverPhone || '';
+    document.getElementById('sheetVehicleNumber').value = b.vehicleNumber || '';
+    document.getElementById('sheetVehicleSend').value = b.vehicleSend || '';
+    document.getElementById('sheetDrAcptToggle').checked = Boolean(b.driverAccepted);
+    document.getElementById('sheetPaymentMode').value = b.paymentMode || 'CREDIT';
+
+    // Inline Audit Footer
+    const createdBy = b.createdBy || 'admin';
+    const createdAtStr = b.createdAt ? new Date(b.createdAt).toLocaleString('en-IN') : 'Just now';
+    const updatedBy = b.updatedBy || createdBy;
+    const updatedAtStr = b.updatedAt ? new Date(b.updatedAt).toLocaleString('en-IN') : createdAtStr;
+    document.getElementById('sheetAuditFooter').textContent = `Created by ${createdBy} @ ${createdAtStr} | Last updated by ${updatedBy} @ ${updatedAtStr}`;
+
+    // Update real-time status pill & completeness checklist
+    updateSheetLiveCompleteness();
+}
+
+function updateSheetLiveCompleteness() {
+    const current = collectSheetFormData();
+    const computed = computeBookingStatusClient(current);
+    const checklist = getMissingChecklist(current);
+
+    // Update Banner Badge
+    const bannerBadge = document.getElementById('sheetHeaderStatusBadge');
+    if (bannerBadge) bannerBadge.innerHTML = getStatusBadgeHtml(computed);
+
+    // Update Live Pill
+    const livePill = document.getElementById('sheetLiveComputedPill');
+    if (livePill) livePill.innerHTML = getStatusBadgeHtml(computed);
+
+    // Checklist feedback
+    const checklistBox = document.getElementById('sheetChecklistFeedback');
+    if (checklistBox) {
+        if (checklist.length === 0 || computed === 'STATUS_YES' || computed === 'DR_DUTY_ACCPT' || computed === 'DR_DUTY_START' || computed === 'DR_DUTY_CLOSE') {
+            checklistBox.className = 'checklist-badge ready';
+            checklistBox.innerHTML = `<i class="bi bi-check-circle-fill"></i> Complete & Ready for Dispatch`;
+        } else {
+            checklistBox.className = 'checklist-badge';
+            checklistBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Missing for Ready: <strong>${checklist.join(', ')}</strong>`;
+        }
+    }
+}
+
+function collectSheetFormData() {
+    const clientSelect = document.getElementById('sheetClientSelect');
+    const selectedClientName = clientSelect.selectedIndex > 0 ? clientSelect.options[clientSelect.selectedIndex].text : '';
+
+    const repHours = document.getElementById('sheetRepHours')?.value?.trim() || '';
+    const repMinutes = document.getElementById('sheetRepMinutes')?.value?.trim() || '';
+    const reqTime = repHours ? `${repHours}:${repMinutes || '00'}` : '';
+
+    const vendorSelect = document.getElementById('sheetVendorSelect');
+    const vendorId = vendorSelect?.value || '';
+    const vendorName = vendorId === 'ADHOC' ? 'Ad-hoc Vendor' : (vendorSelect?.selectedIndex > 0 ? vendorSelect.options[vendorSelect.selectedIndex].text.split(' (')[0] : '');
+
+    const bookingId = document.getElementById('sheetHiddenId')?.value || (currentActiveBooking && (currentActiveBooking._id || currentActiveBooking.bookingNo)) || '';
+
+    return {
+        _id: bookingId,
+        travelDate: document.getElementById('sheetTravelDate')?.value || null,
+        endDate: document.getElementById('sheetEndDate')?.value || null,
+        repHours,
+        repMinutes,
+        reqTime,
+        offHours: document.getElementById('sheetOffHours')?.value?.trim() || '',
+        offMinutes: document.getElementById('sheetOffMinutes')?.value?.trim() || '',
+        noTiming: document.getElementById('sheetNoTimingCheck')?.checked || false,
+        timingNotes: document.getElementById('sheetTimingNotes')?.value?.trim() || '',
+        clientId: clientSelect?.value || '',
+        clientName: selectedClientName,
+        location: document.getElementById('sheetLocation')?.value?.trim() || 'Pune',
+        bookedBy: document.getElementById('sheetBookedBy')?.value?.trim() || '',
+        bookedByPhone: document.getElementById('sheetBookedByPhone')?.value?.trim() || '',
+        vehicleType: document.getElementById('sheetVehicleType')?.value?.trim() || '',
+        packageType: document.getElementById('sheetPackageType')?.value?.trim() || '',
+        destination: document.getElementById('sheetDestination')?.value?.trim() || 'Local Disposal',
+        dutyRefNo: document.getElementById('sheetDutyRefNo')?.value?.trim() || '',
+        remarks: document.getElementById('sheetRemarks')?.value?.trim() || '',
+        guestName: document.getElementById('sheetGuestName')?.value?.trim() || '',
+        guestPhone: document.getElementById('sheetGuestPhone')?.value?.trim() || '',
+        reportingAddress: document.getElementById('sheetReportingAddr')?.value?.trim() || '',
+        dropAddress: document.getElementById('sheetDropAddr')?.value?.trim() || '',
+        extraGuests: collectPassengerRows(),
+        vendorId,
+        vendorName,
+        vendorPackage: document.getElementById('sheetVendorPackage')?.value?.trim() || '',
+        vendorPenalty: Number(document.getElementById('sheetVendorPenalty')?.value || 0),
+        vendorFixRate: Number(document.getElementById('sheetVendorFixRate')?.value || 0),
+        vendorKmRate: Number(document.getElementById('sheetVendorKmRate')?.value || 0),
+        cashToVendor: Number(document.getElementById('sheetCashToVendor')?.value || 0),
+        driverName: document.getElementById('sheetDriverName')?.value?.trim() || '',
+        driverPhone: document.getElementById('sheetDriverPhone')?.value?.trim() || '',
+        vehicleNumber: document.getElementById('sheetVehicleNumber')?.value?.trim()?.toUpperCase() || '',
+        vehicleSend: document.getElementById('sheetVehicleSend')?.value?.trim() || '',
+        driverAccepted: document.getElementById('sheetDrAcptToggle')?.checked || false,
+        paymentMode: document.getElementById('sheetPaymentMode')?.value || 'CREDIT'
+    };
+}
+
+// Passenger table handlers
+function renderPassengerRows(guests = []) {
+    const tbody = document.getElementById('sheetPassengerTbody');
+    if (!tbody) return;
+
+    if (!guests.length) {
+        guests = [{ srNo: 1, guestName: '', reporting: '', drop: '', phone: '', email: '', empId: '', costCenter: '', taskCode: '', reqId: '' }];
+    }
+
+    tbody.innerHTML = guests.map((g, idx) => `
+        <tr data-row="${idx}">
+            <td style="text-align:center;">${idx + 1}</td>
+            <td><input type="text" class="pass-guest" value="${g.guestName || ''}" placeholder="Guest Name"></td>
+            <td><input type="text" class="pass-rep" value="${g.reporting || ''}" placeholder="Pickup Address"></td>
+            <td><input type="text" class="pass-drop" value="${g.drop || ''}" placeholder="Drop Address"></td>
+            <td><input type="text" class="pass-phone" value="${g.phone || ''}" placeholder="Phone"></td>
+            <td><input type="text" class="pass-email" value="${g.email || ''}" placeholder="Email"></td>
+            <td><input type="text" class="pass-empid" value="${g.empId || ''}" placeholder="Emp ID"></td>
+            <td><input type="text" class="pass-cc" value="${g.costCenter || ''}" placeholder="Cost Center"></td>
+            <td><input type="text" class="pass-tc" value="${g.taskCode || ''}" placeholder="Task Code"></td>
+            <td><input type="text" class="pass-reqid" value="${g.reqId || ''}" placeholder="Req ID"></td>
+            <td style="text-align:center;">
+                <button type="button" class="btn btn-outline btn-icon" style="color:#ef4444;" onclick="removePassengerRow(${idx})"><i class="bi bi-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function addPassengerRow() {
+    const guests = collectPassengerRows();
+    guests.push({ srNo: guests.length + 1, guestName: '', reporting: '', drop: '', phone: '', email: '', empId: '', costCenter: '', taskCode: '', reqId: '' });
+    renderPassengerRows(guests);
+}
+
+function removePassengerRow(index) {
+    let guests = collectPassengerRows();
+    if (guests.length <= 1) return;
+    guests.splice(index, 1);
+    renderPassengerRows(guests);
+}
+
+function collectPassengerRows() {
+    const tbody = document.getElementById('sheetPassengerTbody');
+    if (!tbody) return [];
+    const rows = tbody.querySelectorAll('tr');
+    const guests = [];
+    rows.forEach((r, idx) => {
+        guests.push({
+            srNo: idx + 1,
+            guestName: r.querySelector('.pass-guest')?.value || '',
+            reporting: r.querySelector('.pass-rep')?.value || '',
+            drop: r.querySelector('.pass-drop')?.value || '',
+            phone: r.querySelector('.pass-phone')?.value || '',
+            email: r.querySelector('.pass-email')?.value || '',
+            empId: r.querySelector('.pass-empid')?.value || '',
+            costCenter: r.querySelector('.pass-cc')?.value || '',
+            taskCode: r.querySelector('.pass-tc')?.value || '',
+            reqId: r.querySelector('.pass-reqid')?.value || ''
+        });
+    });
+    return guests;
+}
+
+// Quick Communication buttons from Sheet
+function sendBookerSms() {
+    const phone = document.getElementById('sheetBookedByPhone')?.value?.trim();
+    if (!phone) { showToast('No Booked By phone number entered', 'error'); return; }
+    window.open(`sms:${phone}?body=${encodeURIComponent(`Hello, your booking with Wings Travels is logged.`)}`);
+}
+
+function sendBookerWhatsApp() {
+    const phone = (document.getElementById('sheetBookedByPhone')?.value || '').replace(/[^0-9]/g, '');
+    if (!phone) { showToast('No Booked By phone number entered', 'error'); return; }
+    const guest = document.getElementById('sheetGuestName')?.value || 'Guest';
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Hello, your cab booking for ${guest} is received by Wings Travels.`)}`, '_blank');
+}
+
+function sendGuestSms() {
+    const phone = document.getElementById('sheetGuestPhone')?.value?.trim();
+    if (!phone) { showToast('No Guest mobile number entered', 'error'); return; }
+    window.open(`sms:${phone}?body=${encodeURIComponent(`Greetings from Wings Travels. Your cab booking is confirmed.`)}`);
+}
+
+function sendGuestWhatsApp() {
+    const phone = (document.getElementById('sheetGuestPhone')?.value || '').replace(/[^0-9]/g, '');
+    if (!phone) { showToast('No Guest mobile number entered', 'error'); return; }
+    const date = document.getElementById('sheetTravelDate')?.value || '';
+    const time = document.getElementById('sheetRepHours')?.value ? `${document.getElementById('sheetRepHours').value}:${document.getElementById('sheetRepMinutes').value || '00'}` : '';
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Greetings! Wings Travels cab is booked for ${date} at ${time}. Driver details will follow.`)}`, '_blank');
+}
+
+function sendDriverWhatsApp() {
+    const phone = (document.getElementById('sheetDriverPhone')?.value || '').replace(/[^0-9]/g, '');
+    if (!phone) { showToast('No Driver mobile number entered', 'error'); return; }
+    const guest = document.getElementById('sheetGuestName')?.value || 'Guest';
+    const gPhone = document.getElementById('sheetGuestPhone')?.value || '';
+    const addr = document.getElementById('sheetReportingAddr')?.value || '';
+    const date = document.getElementById('sheetTravelDate')?.value || '';
+    const time = document.getElementById('sheetRepHours')?.value ? `${document.getElementById('sheetRepHours').value}:${document.getElementById('sheetRepMinutes').value || '00'}` : '';
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Wings Travels Duty Slip: Passenger: ${guest} (${gPhone}). Pickup: ${addr}. Date: ${date} Time: ${time}. Please accept duty.`)}`, '_blank');
+}
+
+// Save / Update Booking from Sheet
+async function saveBookingFromSheet(resetToAuto = false) {
+    const data = collectSheetFormData();
+    const existingId = data._id || (currentActiveBooking && (currentActiveBooking._id || currentActiveBooking.bookingNo));
+    const isNew = !existingId;
+    const url = isNew ? `${API_BASE}/aggregator/bookings` : `${API_BASE}/aggregator/bookings/${encodeURIComponent(existingId)}`;
+    const method = isNew ? 'POST' : 'PUT';
+
+    if (resetToAuto) {
+        data.resetToAuto = true;
+    }
+
+    const res = await fetchAuth(url, { method, body: JSON.stringify(data) });
+    if (res && res.success) {
+        showToast(res.message);
+
+        // Display non-blocking warnings if any
+        const warningBox = document.getElementById('sheetWarningAlertBox');
+        if (warningBox && res.warnings && res.warnings.length > 0) {
+            warningBox.style.display = 'block';
+            warningBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> ${res.warnings.join('<br>')}`;
+        } else if (warningBox) {
+            warningBox.style.display = 'none';
+        }
+
+        closeModal('bookingDetailModal');
+        currentActiveBooking = null;
+        await loadBookings();
+    } else {
+        showToast(res ? res.message : 'Error saving booking', 'error');
+    }
+}
+
+// Copy booking button inside sheet
+async function copyCurrentActiveBooking() {
+    if (!currentActiveBooking || !currentActiveBooking._id) {
+        showToast('Please save the booking first before copying', 'error');
+        return;
+    }
+    const res = await fetchAuth(`${API_BASE}/aggregator/bookings/${currentActiveBooking._id}/copy`, { method: 'POST' });
+    if (res && res.success) {
+        showToast(res.message);
+        closeModal('bookingDetailModal');
+        loadBookings();
+    } else {
+        showToast(res ? res.message : 'Failed to copy booking', 'error');
+    }
+}
+
+// Cancel booking button inside sheet
+function promptCancelCurrentBooking() {
+    if (!currentActiveBooking || !currentActiveBooking._id) {
+        showToast('Booking is not saved yet', 'error');
+        return;
+    }
+    document.getElementById('cancelBookingTargetNo').textContent = currentActiveBooking.dutySlipNo || currentActiveBooking.bookingNo;
+    document.getElementById('cancelReasonInput').value = '';
+    openModal('cancelBookingModal');
+}
+
+async function submitBookingCancellation() {
+    const reason = document.getElementById('cancelReasonInput')?.value?.trim();
+    if (!reason) {
+        showToast('Cancellation reason is required', 'error');
+        return;
+    }
+
+    const res = await fetchAuth(`${API_BASE}/aggregator/bookings/${currentActiveBooking._id}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ cancelReason: reason })
+    });
+
+    if (res && res.success) {
+        showToast(res.message);
+        closeModal('cancelBookingModal');
+        closeModal('bookingDetailModal');
+        loadBookings();
+    } else {
+        showToast(res ? res.message : 'Error cancelling booking', 'error');
+    }
+}
+
+// =========================================================================
+// 4. DUTY CLOSE & SAME-NUMBER INVOICE GENERATION
+// =========================================================================
+
+async function openDutyCloseModal(bookingId) {
+    const b = findBookingInList(bookingId);
+    if (!b) return;
+
+    currentDutyCloseBooking = b;
+    const dsNo = b.dutySlipNo || b.bookingNo;
+
+    document.getElementById('dcModalTitle').innerHTML = `<i class="bi bi-receipt-cutoff"></i> Close Duty & Generate Invoice — #${dsNo}`;
+    document.getElementById('dcBookingNoDisplay').textContent = dsNo;
+    document.getElementById('dcTargetInvoiceNoDisplay').textContent = dsNo; // EXACT SAME NUMBER!
+    document.getElementById('dcClientDisplay').textContent = b.clientName || 'Client';
+    document.getElementById('dcGuestDisplay').textContent = b.guestName || 'Guest';
+    document.getElementById('dcVehicleDisplay').textContent = `${b.vehicleNumber || ''} (${b.vehicleType || ''})`;
+    document.getElementById('dcDriverDisplay').textContent = b.driverName || 'Driver';
+
+    // Populate Readings
+    const rd = b.dutyCloseReadings || {};
+    document.getElementById('dcGarageOutKm').value = rd.garageOutKm || '';
+    document.getElementById('dcGarageOutTime').value = rd.garageOutTime || '';
+    document.getElementById('dcReportingKm').value = rd.reportingKm || '';
+    document.getElementById('dcReportingTime').value = rd.reportingTime || '';
+    document.getElementById('dcReleasingKm').value = rd.releasingKm || '';
+    document.getElementById('dcReleasingTime').value = rd.releasingTime || '';
+    document.getElementById('dcGarageInKm').value = rd.garageInKm || '';
+    document.getElementById('dcGarageInTime').value = rd.garageInTime || '';
+
+    document.getElementById('dcTotalKms').value = rd.totalKms || (rd.releasingKm && rd.reportingKm ? Math.max(0, rd.releasingKm - rd.reportingKm) : 80);
+    document.getElementById('dcTotalHours').value = rd.totalHours || 8.0;
+    document.getElementById('dcTotalDays').value = rd.totalDays || 1;
+    document.getElementById('dcTotalNights').value = rd.totalNights || 0;
+    document.getElementById('dcDriverAllowance').value = rd.driverAllowance || 0;
+    document.getElementById('dcLateNight').value = rd.lateNightCharges || 0;
+    document.getElementById('dcPermit').value = rd.permitCharges || 0;
+    document.getElementById('dcFuelSurcharge').value = rd.fuelSurcharge || 0;
+    document.getElementById('dcToll').value = rd.tollCharges || 0;
+    document.getElementById('dcParking').value = rd.parkingCharges || 0;
+    document.getElementById('dcGuestSignConfirmed').checked = Boolean(rd.guestSignatureConfirmed);
+
+    // Duty slip uploaded status
+    updateDutySlipFileStatusDisplay(b);
+
+    // If already invoiced, show invoice view
+    if (b.isInvoiced && b.invoiceDetails && b.invoiceDetails.grandTotal) {
+        renderGeneratedInvoiceSection(b.invoiceDetails, b);
+    } else {
+        document.getElementById('generatedInvoiceContainer').style.display = 'none';
+        document.getElementById('btnSubmitCloseDuty').style.display = 'inline-flex';
+    }
+
+    openModal('dutyCloseModal');
+}
+
+function updateDutySlipFileStatusDisplay(b) {
+    const statusContainer = document.getElementById('dcUploadedFileStatus');
+    if (!statusContainer) return;
+
+    if (b.dutySlipUploaded && b.dutySlipFile) {
+        statusContainer.innerHTML = `
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:10px; display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="bi bi-file-earmark-check-fill" style="color:#16a34a; font-size:1.4rem;"></i>
+                    <div>
+                        <div style="font-weight:600; color:#166534; font-size:0.85rem;">${b.dutySlipFileName || 'Paper Duty Slip Scanned'}</div>
+                        <span style="font-size:0.75rem; color:#475569;">Scanned paper slip attached</span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <a href="${b.dutySlipFile}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-eye"></i> View</a>
+                    <a href="${b.dutySlipFile}" download="${b.dutySlipFileName || 'dutyslip.png'}" class="btn btn-outline btn-sm"><i class="bi bi-download"></i> Download</a>
+                </div>
+            </div>
+        `;
+    } else {
+        statusContainer.innerHTML = `
+            <div style="font-size:0.8rem; color:#64748b; font-style:italic;">
+                No paper duty slip uploaded yet. Click above or choose file to upload driver's signed slip.
+            </div>
+        `;
+    }
+}
+
+// Auto-calculate total KMs and Hours from reading inputs
+function autoCalcReadings() {
+    const repKm = Number(document.getElementById('dcReportingKm')?.value || 0);
+    const relKm = Number(document.getElementById('dcReleasingKm')?.value || 0);
+    if (relKm > repKm) {
+        document.getElementById('dcTotalKms').value = relKm - repKm;
+    }
+}
+
+// File upload handler for duty slip
+async function handleDutySlipFileSelect(input) {
+    if (!input.files || !input.files[0] || !currentDutyCloseBooking) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+        const fileData = e.target.result;
+        const res = await fetchAuth(`${API_BASE}/aggregator/bookings/${currentDutyCloseBooking._id}/upload-duty-slip`, {
+            method: 'POST',
+            body: JSON.stringify({ fileData, fileName: file.name })
+        });
+
+        if (res && res.success) {
+            showToast('Duty slip uploaded successfully!');
+            currentDutyCloseBooking.dutySlipUploaded = true;
+            currentDutyCloseBooking.dutySlipFile = fileData;
+            currentDutyCloseBooking.dutySlipFileName = file.name;
+            updateDutySlipFileStatusDisplay(currentDutyCloseBooking);
+            loadBookings();
+        } else {
+            showToast('Failed to upload duty slip', 'error');
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+// Submit Close Duty & Auto-Generate Invoice
+async function submitCloseDutyAndGenerateInvoice() {
+    if (!currentDutyCloseBooking) return;
+
+    const payload = {
+        garageOutKm: Number(document.getElementById('dcGarageOutKm').value || 0),
+        garageOutTime: document.getElementById('dcGarageOutTime').value || '',
+        reportingKm: Number(document.getElementById('dcReportingKm').value || 0),
+        reportingTime: document.getElementById('dcReportingTime').value || '',
+        releasingKm: Number(document.getElementById('dcReleasingKm').value || 0),
+        releasingTime: document.getElementById('dcReleasingTime').value || '',
+        garageInKm: Number(document.getElementById('dcGarageInKm').value || 0),
+        garageInTime: document.getElementById('dcGarageInTime').value || '',
+        totalKms: Number(document.getElementById('dcTotalKms').value || 0),
+        totalHours: Number(document.getElementById('dcTotalHours').value || 0),
+        totalDays: Number(document.getElementById('dcTotalDays').value || 1),
+        totalNights: Number(document.getElementById('dcTotalNights').value || 0),
+        driverAllowance: Number(document.getElementById('dcDriverAllowance').value || 0),
+        lateNightCharges: Number(document.getElementById('dcLateNight').value || 0),
+        permitCharges: Number(document.getElementById('dcPermit').value || 0),
+        fuelSurcharge: Number(document.getElementById('dcFuelSurcharge').value || 0),
+        tollCharges: Number(document.getElementById('dcToll').value || 0),
+        parkingCharges: Number(document.getElementById('dcParking').value || 0),
+        guestSignatureConfirmed: document.getElementById('dcGuestSignConfirmed').checked
+    };
+
+    const btn = document.getElementById('btnSubmitCloseDuty');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Generating Tax Invoice...';
+
+    const res = await fetchAuth(`${API_BASE}/aggregator/bookings/${currentDutyCloseBooking._id}/close-duty`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-receipt"></i> Close Duty & Generate Tax Invoice';
+
+    if (res && res.success) {
+        showToast(res.message);
+        currentDutyCloseBooking = res.data;
+        renderGeneratedInvoiceSection(res.invoice, res.data);
+        loadBookings();
+    } else {
+        showToast(res ? res.message : 'Error closing duty', 'error');
+    }
+}
+
+// Render Tax Invoice Section inside Duty Close Modal
+function renderGeneratedInvoiceSection(inv, b) {
+    const container = document.getElementById('generatedInvoiceContainer');
+    if (!container) return;
+
+    container.style.display = 'block';
+
+    const itemsHtml = (inv.lineItems || []).map((item, idx) => `
+        <tr>
+            <td style="text-align:center;">${idx + 1}</td>
+            <td><strong>${item.description}</strong></td>
+            <td style="text-align:center; font-family:monospace;">${item.hsn || '996601'}</td>
+            <td style="text-align:center;">${item.qty}</td>
+            <td style="text-align:right;">₹${Number(item.rate).toFixed(2)}</td>
+            <td style="text-align:right; font-weight:700;">₹${Number(item.amount).toFixed(2)}</td>
+        </tr>
+    `).join('');
+
+    const taxRowsHtml = inv.isSameState ? `
+        <tr>
+            <td colspan="5" style="text-align:right;">CGST (${inv.cgstRate}%):</td>
+            <td style="text-align:right; font-weight:600;">₹${Number(inv.cgstAmount).toFixed(2)}</td>
+        </tr>
+        <tr>
+            <td colspan="5" style="text-align:right;">SGST (${inv.sgstRate}%):</td>
+            <td style="text-align:right; font-weight:600;">₹${Number(inv.sgstAmount).toFixed(2)}</td>
+        </tr>
+    ` : `
+        <tr>
+            <td colspan="5" style="text-align:right;">IGST (${inv.igstRate}%):</td>
+            <td style="text-align:right; font-weight:600;">₹${Number(inv.igstAmount).toFixed(2)}</td>
+        </tr>
+    `;
+
+    const tollNonTaxableRow = inv.tollParkingNonTaxable > 0 ? `
+        <tr>
+            <td colspan="5" style="text-align:right;">Toll & Parking (Non-Taxable):</td>
+            <td style="text-align:right; font-weight:600;">₹${Number(inv.tollParkingNonTaxable).toFixed(2)}</td>
+        </tr>
+    ` : '';
+
+    container.innerHTML = `
+        <div style="background:#f8fafc; border:1px solid #0f172a; border-radius:8px; padding:20px; margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:12px; margin-bottom:14px;">
+                <div>
+                    <h3 style="font-family:var(--font-outfit); font-size:1.25rem; font-weight:800; color:#0f172a; margin:0;">
+                        TAX INVOICE #${inv.invoiceNo}
+                    </h3>
+                    <span style="font-size:0.75rem; color:#16a34a; font-weight:700;">SAME AS DUTY SLIP #${b.dutySlipNo}</span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-primary btn-sm" onclick="printGeneratedInvoice('${b._id || b.bookingNo}')">
+                        <i class="bi bi-printer-fill"></i> Print Invoice + Duty Slip
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="emailGeneratedInvoice('${b._id || b.bookingNo}')">
+                        <i class="bi bi-envelope-fill"></i> E-Mail Client
+                    </button>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; font-size:0.8rem; margin-bottom:14px;">
+                <div>
+                    <div>Billed To: <strong style="color:#0f172a;">${b.clientName}</strong></div>
+                    <div>Passenger: <strong>${b.guestName}</strong></div>
+                    <div>Vehicle: <strong>${b.vehicleNumber} (${b.vehicleType})</strong></div>
+                </div>
+                <div style="text-align:right;">
+                    <div>Invoice Date: <strong>${new Date(inv.invoiceDate).toLocaleDateString('en-IN')}</strong></div>
+                    <div>Due Date: <strong style="color:#dc2626;">${new Date(inv.dueDate).toLocaleDateString('en-IN')}</strong></div>
+                    <div>Place of Supply: <strong>${b.location || 'Pune'} (${inv.isSameState ? 'Intra-State' : 'Inter-State'})</strong></div>
+                </div>
+            </div>
+
+            <table class="tax-invoice-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px; text-align:center;">#</th>
+                        <th>Description of Services</th>
+                        <th style="width:90px; text-align:center;">SAC</th>
+                        <th style="width:60px; text-align:center;">Qty</th>
+                        <th style="width:100px; text-align:right;">Rate</th>
+                        <th style="width:110px; text-align:right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHtml}
+                    <tr>
+                        <td colspan="5" style="text-align:right; font-weight:700;">Taxable Amount:</td>
+                        <td style="text-align:right; font-weight:700;">₹${Number(inv.taxableAmount).toFixed(2)}</td>
+                    </tr>
+                    ${taxRowsHtml}
+                    ${tollNonTaxableRow}
+                    <tr style="background:#f1f5f9; font-size:1rem;">
+                        <td colspan="5" style="text-align:right; font-weight:800; color:#0f172a;">Grand Total (Rounded):</td>
+                        <td style="text-align:right; font-weight:800; color:#ea580c;">₹${Number(inv.grandTotal).toLocaleString('en-IN')}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="font-size:0.78rem; font-style:italic; color:#475569; margin-top:8px;">
+                Amount in Words: <strong>${inv.amountInWords}</strong>
+            </div>
+        </div>
+    `;
+}
+
+// Print and Email Handlers
+async function printGeneratedInvoice(bookingId) {
+    const res = await fetchAuth(`${API_BASE}/aggregator/bookings/${bookingId}/invoice`);
+    if (!res || !res.success) { showToast('Error loading invoice', 'error'); return; }
+
+    const { invoice, booking, company, brokerProfile } = res.data;
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Tax Invoice #${invoice.invoiceNo} - Wings Tours & Travels</title>
+            <style>
+                body { font-family: 'Arial', sans-serif; padding: 30px; color: #0f172a; font-size: 13px; }
+                .inv-box { border: 2px solid #0f172a; padding: 24px; }
+                .header { border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; }
+                table { width: 100%; border-collapse: collapse; margin: 14px 0; }
+                th, td { border: 1px solid #94a3b8; padding: 8px; text-align: left; }
+                th { background: #f1f5f9; }
+                .text-right { text-align: right; }
+                .bold { font-weight: bold; }
+                @media print { body { padding: 0; } }
+            </style>
+        </head>
+        <body onload="window.print()">
+            <div class="inv-box">
+                <div class="header">
+                    <div>
+                        <h2 style="margin:0; font-size:20px;">${brokerProfile.companyLegalName || 'Wings Tours & Travels'}</h2>
+                        <div style="font-size:12px; color:#475569;">${brokerProfile.address || ''}</div>
+                        <div>GSTIN: <strong style="font-family:monospace;">${brokerProfile.gstin || ''}</strong> | PAN: <strong>${brokerProfile.pan || ''}</strong></div>
+                        <div>State: ${brokerProfile.state || ''} (Code: ${brokerProfile.stateCode || '27-MH'})</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <h2 style="margin:0; color:#ea580c;">TAX INVOICE</h2>
+                        <div style="font-size:14px; font-weight:bold; margin-top:4px;">Invoice No: #${invoice.invoiceNo}</div>
+                        <div>Duty Slip No: #${booking.dutySlipNo}</div>
+                        <div>Date: ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}</div>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; margin-bottom:14px;">
+                    <div>
+                        <div class="bold">Billed To (Client):</div>
+                        <div style="font-size:14px; font-weight:bold;">${company.companyName || booking.clientName}</div>
+                        <div>${company.billingAddress || ''}</div>
+                        <div>GSTIN: <strong style="font-family:monospace;">${company.gstin || ''}</strong> | State: ${company.state || ''} (${company.stateCode || ''})</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div>Passenger: <strong class="bold">${booking.guestName}</strong></div>
+                        <div>Vehicle: <strong>${booking.vehicleNumber} (${booking.vehicleType})</strong></div>
+                        <div>Duty Date: ${booking.travelDate ? new Date(booking.travelDate).toLocaleDateString('en-IN') : ''}</div>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:30px;">#</th>
+                            <th>Description</th>
+                            <th style="width:80px; text-align:center;">SAC</th>
+                            <th style="width:50px; text-align:center;">Qty</th>
+                            <th style="width:90px;" class="text-right">Rate (₹)</th>
+                            <th style="width:100px;" class="text-right">Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${(invoice.lineItems || []).map((item, i) => `
+                            <tr>
+                                <td style="text-align:center;">${i + 1}</td>
+                                <td>${item.description}</td>
+                                <td style="text-align:center;">${item.hsn}</td>
+                                <td style="text-align:center;">${item.qty}</td>
+                                <td class="text-right">${Number(item.rate).toFixed(2)}</td>
+                                <td class="text-right bold">${Number(item.amount).toFixed(2)}</td>
+                            </tr>
+                        `).join('')}
+                        <tr>
+                            <td colspan="5" class="text-right bold">Taxable Subtotal:</td>
+                            <td class="text-right bold">₹${Number(invoice.taxableAmount).toFixed(2)}</td>
+                        </tr>
+                        ${invoice.isSameState ? `
+                            <tr>
+                                <td colspan="5" class="text-right">CGST (${invoice.cgstRate}%):</td>
+                                <td class="text-right">₹${Number(invoice.cgstAmount).toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="5" class="text-right">SGST (${invoice.sgstRate}%):</td>
+                                <td class="text-right">₹${Number(invoice.sgstAmount).toFixed(2)}</td>
+                            </tr>
+                        ` : `
+                            <tr>
+                                <td colspan="5" class="text-right">IGST (${invoice.igstRate}%):</td>
+                                <td class="text-right">₹${Number(invoice.igstAmount).toFixed(2)}</td>
+                            </tr>
+                        `}
+                        ${invoice.tollParkingNonTaxable > 0 ? `
+                            <tr>
+                                <td colspan="5" class="text-right">Toll & Parking (Non-Taxable):</td>
+                                <td class="text-right">₹${Number(invoice.tollParkingNonTaxable).toFixed(2)}</td>
+                            </tr>
+                        ` : ''}
+                        <tr style="background:#f8fafc; font-size:15px;">
+                            <td colspan="5" class="text-right bold">Grand Total (Rounded):</td>
+                            <td class="text-right bold" style="color:#ea580c;">₹${Number(invoice.grandTotal).toLocaleString('en-IN')}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div style="margin-top:10px;">
+                    <div>Amount in Words: <strong>${invoice.amountInWords}</strong></div>
+                    <div style="margin-top:14px; background:#f8fafc; border:1px solid #e2e8f0; padding:10px; font-size:12px;">
+                        <strong>Bank Details:</strong> ${brokerProfile.bankName} | A/C: ${brokerProfile.accountNumber} | IFSC: ${brokerProfile.ifscCode} | Payable To: ${brokerProfile.accountName}
+                    </div>
+                </div>
+
+                <div style="margin-top:30px; display:flex; justify-content:space-between; text-align:center;">
+                    <div>Guest Signature: __________________</div>
+                    <div>For ${brokerProfile.companyLegalName || 'Wings Travels'}<br><br><br>Authorized Signatory</div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+async function emailGeneratedInvoice(bookingId) {
+    const res = await fetchAuth(`${API_BASE}/aggregator/bookings/${bookingId}/email-invoice`, { method: 'POST' });
+    if (res && res.success) {
+        showToast(res.message);
+    } else {
+        showToast('Failed to email invoice', 'error');
+    }
+}
+
+// Print Duty Slip modal
+function openPrintDutySlipModal(bookingId) {
+    const b = findBookingInList(bookingId);
+    if (!b) return;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Duty Slip #${b.dutySlipNo}</title>
+            <style>
+                body { font-family: 'Arial', sans-serif; padding: 24px; color: #0f172a; }
+                .box { border: 2px solid #0f172a; padding: 20px; }
+                table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+                th, td { border: 1px solid #94a3b8; padding: 8px; }
+                th { background: #f8fafc; }
+            </style>
+        </head>
+        <body onload="window.print()">
+            <div class="box">
+                <div style="display:flex; justify-content:space-between; border-bottom:2px solid #0f172a; padding-bottom:8px;">
+                    <div>
+                        <h2 style="margin:0;">RED CARS / WINGS TRAVELS</h2>
+                        <div>Pune Helpline: +91 98220 12345</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <h2 style="margin:0; color:#ea580c;">DUTY SLIP</h2>
+                        <div style="font-size:16px; font-weight:bold;">No: #${b.dutySlipNo}</div>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0;">
+                    <div>Client: <strong>${b.clientName}</strong></div>
+                    <div>Date: <strong>${b.travelDate ? new Date(b.travelDate).toLocaleDateString('en-IN') : ''}</strong></div>
+                    <div>Guest: <strong>${b.guestName} (${b.guestPhone || ''})</strong></div>
+                    <div>Reporting Time: <strong>${b.reqTime || ''}</strong></div>
+                    <div>Reporting Address: <strong>${b.reportingAddress || ''}</strong></div>
+                    <div>Vehicle No: <strong>${b.vehicleNumber || 'Unassigned'}</strong></div>
+                    <div>Driver: <strong>${b.driverName || 'Unassigned'} (${b.driverPhone || ''})</strong></div>
+                    <div>Package: <strong>${b.packageType || ''}</strong></div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Reading</th><th>Garage Out</th><th>Reporting</th><th>Releasing</th><th>Garage In</th><th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>KM</td><td>${b.dutyCloseReadings?.garageOutKm || ''}</td><td>${b.dutyCloseReadings?.reportingKm || ''}</td><td>${b.dutyCloseReadings?.releasingKm || ''}</td><td>${b.dutyCloseReadings?.garageInKm || ''}</td><td><strong>${b.dutyCloseReadings?.totalKms || ''}</strong></td></tr>
+                        <tr><td>Time</td><td>${b.dutyCloseReadings?.garageOutTime || ''}</td><td>${b.dutyCloseReadings?.reportingTime || ''}</td><td>${b.dutyCloseReadings?.releasingTime || ''}</td><td>${b.dutyCloseReadings?.garageInTime || ''}</td><td><strong>${b.dutyCloseReadings?.totalHours || ''}</strong></td></tr>
+                    </tbody>
+                </table>
+                <div style="margin-top:24px; display:flex; justify-content:space-between;">
+                    <div>Driver Signature: __________________</div>
+                    <div>Guest Signature: __________________</div>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+// Print Ply Card (Placard) modal
+function openPrintPlyCardModal(bookingId) {
+    const b = bookingId ? findBookingInList(bookingId) : currentActiveBooking;
+    if (!b) return;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Placard - ${b.guestName}</title>
+            <style>
+                body { font-family: 'Arial', sans-serif; display: flex; align-items: center; justify-content: center; height: 95vh; margin: 0; background: #fff; }
+                .placard { border: 6px solid #0f172a; padding: 40px; text-align: center; width: 85%; border-radius: 12px; }
+                .guest { font-size: 38px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin: 24px 0; }
+                .company { font-size: 24px; font-weight: 700; color: #ea580c; text-transform: uppercase; }
+                .meta { font-size: 16px; color: #475569; margin-top: 24px; }
+            </style>
+        </head>
+        <body onload="window.print()">
+            <div class="placard">
+                <div class="company">${b.clientName || 'WINGS TRAVELS'}</div>
+                <div style="font-size:16px; color:#64748b; margin-top:6px;">WELCOME TO PUNE</div>
+                <div class="guest">${b.guestName || 'GUEST NAME'}</div>
+                <div class="meta">
+                    Vehicle: <strong>${b.vehicleNumber || ''} (${b.vehicleType || ''})</strong><br>
+                    Driver: <strong>${b.driverName || ''} (${b.driverPhone || ''})</strong>
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+// Bind live listeners in sheet form for auto-completeness feedback
+document.addEventListener('DOMContentLoaded', () => {
+    const sheetInputs = [
+        'sheetTravelDate', 'sheetRepHours', 'sheetRepMinutes', 'sheetNoTimingCheck',
+        'sheetClientSelect', 'sheetVehicleType', 'sheetPackageType', 'sheetGuestName',
+        'sheetVendorSelect', 'sheetVehicleNumber', 'sheetDriverName', 'sheetDrAcptToggle'
+    ];
+
+    sheetInputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', updateSheetLiveCompleteness);
+            el.addEventListener('change', updateSheetLiveCompleteness);
+        }
+    });
+
+    // Auto calculate readings in duty close
+    ['dcReportingKm', 'dcReleasingKm'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', autoCalcReadings);
+    });
+});
+
+// =========================================================================
+// 5. TEST & DEMO FALLBACK DATA STORES
+// =========================================================================
+function getFallbackCompanies() {
+    return [
+        {
+            _id: 'mock_comp1',
+            companyName: 'Infosys BPM Pune',
+            billingAddress: 'Plot No. 1, Hinjewadi Phase 2, Rajiv Gandhi Infotech Park, Pune, Maharashtra 411057',
+            state: 'Maharashtra',
+            stateCode: '27-MH',
+            gstin: '27AAACI1234F1Z8',
+            creditPeriodDays: 30,
+            gstRate: 5.0,
+            status: true,
+            rateCards: [
+                { _id: 'rc1', vehicleCategory: 'Sedan A/C', packageName: '8 Hrs / 80 Km', baseHours: 8, baseKms: 80, basePackageRate: 2200, extraKmRate: 18, extraHourRate: 200, driverDayAllowance: 300, nightLateAllowance: 250 },
+                { _id: 'rc2', vehicleCategory: 'SUV / Innova', packageName: '8 Hrs / 80 Km', baseHours: 8, baseKms: 80, basePackageRate: 3400, extraKmRate: 24, extraHourRate: 300, driverDayAllowance: 350, nightLateAllowance: 300 },
+                { _id: 'rc3', vehicleCategory: 'Sedan A/C', packageName: 'Pune Airport Drop', baseHours: 4, baseKms: 40, basePackageRate: 1400, extraKmRate: 18, extraHourRate: 200, driverDayAllowance: 0, nightLateAllowance: 200 }
+            ]
+        },
+        {
+            _id: 'mock_comp2',
+            companyName: 'Tata Consultancy Services (TCS)',
+            billingAddress: 'Sahyadri Park, Hinjewadi Phase 3, Pune, Maharashtra 411057',
+            state: 'Maharashtra',
+            stateCode: '27-MH',
+            gstin: '27AAACT9876Q1Z2',
+            creditPeriodDays: 45,
+            gstRate: 5.0,
+            status: true,
+            rateCards: [
+                { _id: 'rc4', vehicleCategory: 'Hatchback', packageName: '4 Hrs / 40 Km', baseHours: 4, baseKms: 40, basePackageRate: 1200, extraKmRate: 14, extraHourRate: 150, driverDayAllowance: 0, nightLateAllowance: 150 },
+                { _id: 'rc5', vehicleCategory: 'Sedan A/C', packageName: '8 Hrs / 80 Km', baseHours: 8, baseKms: 80, basePackageRate: 2150, extraKmRate: 17, extraHourRate: 190, driverDayAllowance: 250, nightLateAllowance: 200 },
+                { _id: 'rc6', vehicleCategory: 'SUV / Innova', packageName: '8 Hrs / 80 Km', baseHours: 8, baseKms: 80, basePackageRate: 3300, extraKmRate: 23, extraHourRate: 280, driverDayAllowance: 300, nightLateAllowance: 250 }
+            ]
+        },
+        {
+            _id: 'mock_comp3',
+            companyName: 'Tech Mahindra Ltd.',
+            billingAddress: 'Phase 3, Hinjewadi Rajiv Gandhi Infotech Park, Pune, Maharashtra 411057',
+            state: 'Maharashtra',
+            stateCode: '27-MH',
+            gstin: '27AAACT2345N1ZK',
+            creditPeriodDays: 30,
+            gstRate: 5.0,
+            status: true,
+            rateCards: [
+                { _id: 'rc7', vehicleCategory: 'Sedan A/C', packageName: '8 Hrs / 80 Km', baseHours: 8, baseKms: 80, basePackageRate: 2250, extraKmRate: 18, extraHourRate: 210, driverDayAllowance: 300, nightLateAllowance: 250 },
+                { _id: 'rc8', vehicleCategory: 'SUV / Innova', packageName: '8 Hrs / 80 Km', baseHours: 8, baseKms: 80, basePackageRate: 3500, extraKmRate: 25, extraHourRate: 300, driverDayAllowance: 350, nightLateAllowance: 300 },
+                { _id: 'rc9', vehicleCategory: 'Tempo Traveller', packageName: '8 Hrs / 80 Km', baseHours: 8, baseKms: 80, basePackageRate: 5500, extraKmRate: 32, extraHourRate: 450, driverDayAllowance: 500, nightLateAllowance: 400 }
+            ]
+        },
+        {
+            _id: 'mock_comp4',
+            companyName: 'Wipro Technologies (Karnataka Corporate)',
+            billingAddress: 'Doddakannelli, Sarjapur Road, Bangalore, Karnataka 560035',
+            state: 'Karnataka',
+            stateCode: '29-KA',
+            gstin: '29AAACW1234A1Z9',
+            creditPeriodDays: 60,
+            gstRate: 5.0,
+            status: true,
+            rateCards: [
+                { _id: 'rc10', vehicleCategory: 'Sedan A/C', packageName: '8 Hrs / 80 Km', baseHours: 8, baseKms: 80, basePackageRate: 2300, extraKmRate: 19, extraHourRate: 220, driverDayAllowance: 300, nightLateAllowance: 250 }
+            ]
+        },
+        {
+            _id: 'mock_comp5',
+            companyName: 'Cognizant Technology Solutions',
+            billingAddress: 'Quadron Business Park, Hinjewadi Phase 2, Pune, Maharashtra 411057',
+            state: 'Maharashtra',
+            stateCode: '27-MH',
+            gstin: '27AAACC4321K1Z4',
+            creditPeriodDays: 30,
+            gstRate: 5.0,
+            status: true,
+            rateCards: [
+                { _id: 'rc11', vehicleCategory: 'Sedan A/C', packageName: '8 Hrs / 80 Km', baseHours: 8, baseKms: 80, basePackageRate: 2200, extraKmRate: 18, extraHourRate: 200, driverDayAllowance: 300, nightLateAllowance: 250 }
+            ]
+        }
+    ];
+}
+
+function getFallbackVendors() {
+    const today = new Date();
+    const futureDate = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString();
+    return [
+        {
+            _id: 'mock_v1',
+            vendorName: 'Om Sai Tour & Travels',
+            contactPerson: 'Santosh Jadhav',
+            phone: '+91 98901 23456',
+            status: true,
+            vehicles: [
+                { _id: 'veh1', registrationNumber: 'MH12 QK7890', vehicleCategory: 'Sedan A/C', vehicleModel: 'Maruti Swift Dzire White', insuranceExpiryDate: futureDate, fitnessExpiryDate: futureDate, status: true },
+                { _id: 'veh2', registrationNumber: 'MH12 AB1234', vehicleCategory: 'SUV / Innova', vehicleModel: 'Toyota Innova Crysta Grey', insuranceExpiryDate: futureDate, fitnessExpiryDate: futureDate, status: true },
+                { _id: 'veh3', registrationNumber: 'MH14 TC5566', vehicleCategory: 'Tempo Traveller', vehicleModel: 'Force Traveller 17-Seater', insuranceExpiryDate: futureDate, fitnessExpiryDate: futureDate, status: true }
+            ],
+            drivers: [
+                { _id: 'drv1', driverName: 'Ramesh Pawar', phone: '+91 97654 32100', licenseExpiryDate: futureDate, status: true },
+                { _id: 'drv2', driverName: 'Vikram Gaikwad', phone: '+91 98223 99887', licenseExpiryDate: futureDate, status: true }
+            ]
+        },
+        {
+            _id: 'mock_v2',
+            vendorName: 'Balaji Fleet Aggregators (Ad-hoc Partner)',
+            contactPerson: 'Mahesh Shinde',
+            phone: '+91 94220 87654',
+            status: true,
+            vehicles: [],
+            drivers: []
+        },
+        {
+            _id: 'mock_v3',
+            vendorName: 'Sai Shraddha Cabs & Logistics',
+            contactPerson: 'Anand Patil',
+            phone: '+91 98505 67890',
+            status: true,
+            vehicles: [
+                { _id: 'veh4', registrationNumber: 'MH12 RN9900', vehicleCategory: 'Sedan A/C', vehicleModel: 'Hyundai Aura White', insuranceExpiryDate: futureDate, fitnessExpiryDate: futureDate, status: true },
+                { _id: 'veh5', registrationNumber: 'MH12 EF5678', vehicleCategory: 'SUV / Innova', vehicleModel: 'Maruti Suzuki Ertiga Silver', insuranceExpiryDate: futureDate, fitnessExpiryDate: futureDate, status: true }
+            ],
+            drivers: [
+                { _id: 'drv3', driverName: 'Sachin Kadam', phone: '+91 98600 77112', licenseExpiryDate: futureDate, status: true },
+                { _id: 'drv4', driverName: 'Ganesh Shinde', phone: '+91 99700 88223', licenseExpiryDate: futureDate, status: true }
+            ]
+        },
+        {
+            _id: 'mock_v4',
+            vendorName: 'Shree Ganesh Travels Pune',
+            contactPerson: 'Sunil Bhosale',
+            phone: '+91 97665 43210',
+            status: true,
+            vehicles: [
+                { _id: 'veh6', registrationNumber: 'MH12 GH4321', vehicleCategory: 'Sedan A/C', vehicleModel: 'Maruti Dzire Tour S', insuranceExpiryDate: futureDate, fitnessExpiryDate: futureDate, status: true }
+            ],
+            drivers: [
+                { _id: 'drv5', driverName: 'Prakash Jagtap', phone: '+91 98810 55443', licenseExpiryDate: futureDate, status: true }
+            ]
+        }
+    ];
+}
+
+function getFallbackBookings() {
+    return [
+        {
+            _id: 'mock_bk_73420',
+            bookingNo: '73420',
+            dutySlipNo: '73420',
+            status: 'DR_DUTY_CLOSE',
+            travelDate: '2026-11-22',
+            reqTime: '08:00',
+            repHours: '08',
+            repMinutes: '00',
+            clientName: 'Tata Consultancy Services (TCS)',
+            guestName: 'Dr. Scott Chen',
+            guestPhone: '+91 74475 59053',
+            vehicleType: 'Sedan A/C',
+            packageType: '8 Hrs / 80 Km',
+            vehicleNumber: 'MH12 QK7890',
+            driverName: 'Ramesh Pawar',
+            driverPhone: '+91 97654 32100',
+            driverAccepted: true,
+            dutyStarted: true,
+            dutyClosed: true,
+            location: 'Pune',
+            isInvoiced: true,
+            dutySlipUploaded: true
+        },
+        {
+            _id: 'mock_bk_73421',
+            bookingNo: '73421',
+            dutySlipNo: '73421',
+            status: 'DR_DUTY_START',
+            travelDate: '2026-11-22',
+            reqTime: '09:00',
+            repHours: '09',
+            repMinutes: '00',
+            clientName: 'Infosys BPM Pune',
+            guestName: 'Mr. Yun',
+            guestPhone: '+91 98223 99887',
+            vehicleType: 'SUV / Innova',
+            packageType: '8 Hrs / 80 Km',
+            vehicleNumber: 'MH12 AB1234',
+            driverName: 'Vikram Gaikwad',
+            driverPhone: '+91 98223 99887',
+            driverAccepted: true,
+            dutyStarted: true,
+            dutyClosed: false,
+            location: 'Pune'
+        },
+        {
+            _id: 'mock_bk_73422',
+            bookingNo: '73422',
+            dutySlipNo: '73422',
+            status: 'DR_DUTY_ACCPT',
+            travelDate: '2026-11-22',
+            reqTime: '14:30',
+            repHours: '14',
+            repMinutes: '30',
+            clientName: 'Tech Mahindra Ltd.',
+            guestName: 'Ms. Ananya Roy',
+            guestPhone: '+91 98900 11223',
+            vehicleType: 'Sedan A/C',
+            packageType: 'Pune Airport Drop',
+            vehicleNumber: 'MH12 RN9900',
+            driverName: 'Sachin Kadam',
+            driverPhone: '+91 98600 77112',
+            driverAccepted: true,
+            dutyStarted: false,
+            dutyClosed: false,
+            location: 'Pune'
+        },
+        {
+            _id: 'mock_bk_73423',
+            bookingNo: '73423',
+            dutySlipNo: '73423',
+            status: 'STATUS_YES',
+            travelDate: '2026-11-22',
+            reqTime: '16:00',
+            repHours: '16',
+            repMinutes: '00',
+            clientName: 'Tata Consultancy Services (TCS)',
+            guestName: 'Mr. Rajesh Sharma',
+            guestPhone: '+91 98221 66554',
+            vehicleType: 'Sedan A/C',
+            packageType: '8 Hrs / 80 Km',
+            vehicleNumber: 'MH12 AB1234',
+            driverName: 'Vikram Gaikwad',
+            driverAccepted: false,
+            dutyStarted: false,
+            dutyClosed: false,
+            location: 'Pune'
+        },
+        {
+            _id: 'mock_bk_73424',
+            bookingNo: '73424',
+            dutySlipNo: '73424',
+            status: 'STATUS_NO',
+            travelDate: '2026-11-23',
+            reqTime: '08:30',
+            repHours: '08',
+            repMinutes: '30',
+            clientName: 'Infosys BPM Pune',
+            guestName: 'Mr. David Miller',
+            guestPhone: '+91 98112 33445',
+            vehicleType: 'Sedan A/C',
+            packageType: '8 Hrs / 80 Km',
+            vehicleNumber: '',
+            driverName: '',
+            driverAccepted: false,
+            dutyStarted: false,
+            dutyClosed: false,
+            location: 'Pune'
+        },
+        {
+            _id: 'mock_bk_73425',
+            bookingNo: '73425',
+            dutySlipNo: '73425',
+            status: 'NO_TIMING',
+            travelDate: '2026-11-22',
+            reqTime: '',
+            noTiming: true,
+            timingNotes: 'Flight landing time will be confirmed by evening',
+            clientName: 'Tata Consultancy Services (TCS)',
+            guestName: 'Mr. Vikram Patel',
+            guestPhone: '+91 98229 88776',
+            vehicleType: 'SUV / Innova',
+            packageType: '8 Hrs / 80 Km',
+            vehicleNumber: '',
+            driverName: '',
+            driverAccepted: false,
+            dutyStarted: false,
+            dutyClosed: false,
+            location: 'Pune'
+        },
+        {
+            _id: 'mock_bk_73426',
+            bookingNo: '73426',
+            dutySlipNo: '73426',
+            status: 'STATUS_CANCEL',
+            travelDate: '2026-11-22',
+            reqTime: '11:00',
+            repHours: '11',
+            repMinutes: '00',
+            cancelReason: 'Client flight SG-104 cancelled by SpiceJet due to severe weather at Mumbai airport',
+            clientName: 'Infosys BPM Pune',
+            guestName: 'Mr. Amit Verma',
+            guestPhone: '+91 99220 55443',
+            vehicleType: 'Sedan A/C',
+            packageType: '8 Hrs / 80 Km',
+            vehicleNumber: 'MH12 QK7890',
+            driverName: 'Ramesh Pawar',
+            driverAccepted: false,
+            dutyStarted: false,
+            dutyClosed: false,
+            location: 'Pune'
+        },
+        {
+            _id: 'mock_bk_73428',
+            bookingNo: '73428',
+            dutySlipNo: '73428',
+            status: 'NO_TIMING',
+            travelDate: '2026-11-23',
+            reqTime: '',
+            noTiming: true,
+            timingNotes: 'Board meeting schedule will decide pickup hour',
+            clientName: 'Tech Mahindra Ltd.',
+            guestName: 'Ms. Rashmi Joshi',
+            guestPhone: '+91 98234 55677',
+            vehicleType: 'Sedan A/C',
+            packageType: '8 Hrs / 80 Km',
+            vehicleNumber: '',
+            driverName: '',
+            driverAccepted: false,
+            dutyStarted: false,
+            dutyClosed: false,
+            location: 'Pune'
+        },
+        {
+            _id: 'mock_bk_73429',
+            bookingNo: '73429',
+            dutySlipNo: '73429',
+            status: 'DR_DUTY_ACCPT',
+            travelDate: '2026-11-23',
+            reqTime: '07:30',
+            repHours: '07',
+            repMinutes: '30',
+            clientName: 'Wipro Technologies (Karnataka Corporate)',
+            guestName: 'Mr. Rohan Mehta',
+            guestPhone: '+91 98199 44332',
+            vehicleType: 'SUV / Innova',
+            packageType: '8 Hrs / 80 Km',
+            vehicleNumber: 'MH12 EF5678',
+            driverName: 'Ganesh Shinde',
+            driverAccepted: true,
+            dutyStarted: false,
+            dutyClosed: false,
+            location: 'Pune'
+        },
+        {
+            _id: 'mock_bk_73430',
+            bookingNo: '73430',
+            dutySlipNo: '73430',
+            status: 'STATUS_CANCEL',
+            travelDate: '2026-11-24',
+            reqTime: '08:00',
+            repHours: '08',
+            repMinutes: '00',
+            cancelReason: 'Client conference postponed by 2 weeks; cab booking cancelled with prior notice',
+            clientName: 'Tech Mahindra Ltd.',
+            guestName: 'Dr. Neha Kulkarni',
+            guestPhone: '+91 99220 11998',
+            vehicleType: 'Tempo Traveller',
+            packageType: '8 Hrs / 80 Km',
+            vehicleNumber: 'MH14 TC5566',
+            driverName: 'Vikram Gaikwad',
+            driverAccepted: false,
+            dutyStarted: false,
+            dutyClosed: false,
+            location: 'Pune'
+        }
+    ];
+}
