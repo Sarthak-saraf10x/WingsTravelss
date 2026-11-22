@@ -357,8 +357,8 @@ function populateVendorDropdown() {
 function openNewBookingSheet() {
     currentActiveBooking = {
         _id: '',
-        bookingNo: 'AUTO',
-        dutySlipNo: 'AUTO',
+        bookingNo: '',
+        dutySlipNo: '',
         status: 'NO_TIMING',
         isManualStatus: false,
         noTiming: true,
@@ -391,9 +391,10 @@ function renderBookingSheetForm(b) {
     populateVendorDropdown();
 
     // Banner Details
-    const dsNo = b.dutySlipNo || b.bookingNo || 'AUTO';
+    const dsNo = (b.dutySlipNo && b.dutySlipNo !== 'AUTO') ? b.dutySlipNo : ((b.bookingNo && b.bookingNo !== 'AUTO') ? b.bookingNo : 'AUTO');
     document.getElementById('sheetDsNoDisplay').textContent = dsNo === 'AUTO' ? 'Next Sequence' : `#${dsNo}`;
-    document.getElementById('sheetHiddenId').value = b._id || b.bookingNo || '';
+    const realId = (b._id && b._id !== 'AUTO') ? b._id : ((b.bookingNo && b.bookingNo !== 'AUTO') ? b.bookingNo : '');
+    document.getElementById('sheetHiddenId').value = realId;
 
     // Quick Driver Acceptance in Header
     const drAcptToggle = document.getElementById('sheetHeaderDrAcpt');
@@ -504,10 +505,14 @@ function collectSheetFormData() {
     const vendorId = vendorSelect?.value || '';
     const vendorName = vendorId === 'ADHOC' ? 'Ad-hoc Vendor' : (vendorSelect?.selectedIndex > 0 ? vendorSelect.options[vendorSelect.selectedIndex].text.split(' (')[0] : '');
 
-    const bookingId = document.getElementById('sheetHiddenId')?.value || (currentActiveBooking && (currentActiveBooking._id || currentActiveBooking.bookingNo)) || '';
+    const rawHiddenId = document.getElementById('sheetHiddenId')?.value?.trim() || '';
+    const rawActiveId = (currentActiveBooking && (currentActiveBooking._id || currentActiveBooking.bookingNo)) || '';
+    const bookingId = (rawHiddenId && rawHiddenId !== 'AUTO') 
+        ? rawHiddenId 
+        : ((rawActiveId && rawActiveId !== 'AUTO') ? rawActiveId : '');
 
     return {
-        _id: bookingId,
+        _id: bookingId || undefined,
         travelDate: document.getElementById('sheetTravelDate')?.value || null,
         endDate: document.getElementById('sheetEndDate')?.value || null,
         repHours,
@@ -653,8 +658,14 @@ function sendDriverWhatsApp() {
 // Save / Update Booking from Sheet
 async function saveBookingFromSheet(resetToAuto = false) {
     const data = collectSheetFormData();
-    const existingId = data._id || (currentActiveBooking && (currentActiveBooking._id || currentActiveBooking.bookingNo));
+    const rawExistingId = data._id || (currentActiveBooking && (currentActiveBooking._id || currentActiveBooking.bookingNo));
+    const existingId = (rawExistingId && rawExistingId !== 'AUTO') ? rawExistingId : null;
     const isNew = !existingId;
+    if (isNew) {
+        delete data._id;
+        if (data.bookingNo === 'AUTO') delete data.bookingNo;
+        if (data.dutySlipNo === 'AUTO') delete data.dutySlipNo;
+    }
     const url = isNew ? `${API_BASE}/aggregator/bookings` : `${API_BASE}/aggregator/bookings/${encodeURIComponent(existingId)}`;
     const method = isNew ? 'POST' : 'PUT';
 
