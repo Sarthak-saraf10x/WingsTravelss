@@ -2380,7 +2380,16 @@
                             </div>
                             <div class="form-group">
                                 <label>Package Type <span class="required">*</span></label>
-                                <input type="text" id="sheetPackageType" required placeholder="e.g. 8 Hrs / 80 Km, Airport Drop, Outstation">
+                                <select id="sheetPackageType" required>
+                                    <option value="">-- Select Package --</option>
+                                    <option value="Local 4hr/40Km">Local 4hr/40Km</option>
+                                    <option value="Local 8hr/80km">Local 8hr/80km</option>
+                                    <option value="Transfer - S">Transfer - S</option>
+                                    <option value="Transfer - L">Transfer - L</option>
+                                    <option value="AIRPORT P/D - S">AIRPORT P/D - S</option>
+                                    <option value="AIRPORT P/D - L">AIRPORT P/D - L</option>
+                                    <option value="OUTSTATION">OUTSTATION</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Destination / Duty Description</label>
@@ -2474,7 +2483,16 @@
                             </div>
                             <div class="form-group">
                                 <label>Vendor Package Type</label>
-                                <input type="text" id="sheetVendorPackage" placeholder="e.g. 8/80 Vendor">
+                                <select id="sheetVendorPackage">
+                                    <option value="">-- Select Package --</option>
+                                    <option value="Local 4hr/40Km">Local 4hr/40Km</option>
+                                    <option value="Local 8hr/80km">Local 8hr/80km</option>
+                                    <option value="Transfer - S">Transfer - S</option>
+                                    <option value="Transfer - L">Transfer - L</option>
+                                    <option value="AIRPORT P/D - S">AIRPORT P/D - S</option>
+                                    <option value="AIRPORT P/D - L">AIRPORT P/D - L</option>
+                                    <option value="OUTSTATION">OUTSTATION</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Vendor Fix Rate (₹)</label>

@@ -386,6 +386,32 @@ function openBookingSheet(bookingId) {
     openModal('bookingDetailModal');
 }
 
+function setPackageSelectValue(selectId, value) {
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    if (!value) {
+        el.value = '';
+        return;
+    }
+    const valTrim = String(value).trim();
+    let found = false;
+    for (let i = 0; i < el.options.length; i++) {
+        if (el.options[i].value.toLowerCase() === valTrim.toLowerCase() || el.options[i].text.toLowerCase() === valTrim.toLowerCase()) {
+            el.selectedIndex = i;
+            el.value = el.options[i].value;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        const opt = document.createElement('option');
+        opt.value = valTrim;
+        opt.textContent = valTrim;
+        el.appendChild(opt);
+        el.value = valTrim;
+    }
+}
+
 function renderBookingSheetForm(b) {
     // Populate dropdowns first
     populateClientCompanyDropdowns();
@@ -426,7 +452,7 @@ function renderBookingSheetForm(b) {
 
     // Vehicle & Package
     document.getElementById('sheetVehicleType').value = b.vehicleType || '';
-    document.getElementById('sheetPackageType').value = b.packageType || '';
+    setPackageSelectValue('sheetPackageType', b.packageType);
     document.getElementById('sheetDestination').value = b.destination || 'Local Disposal';
     document.getElementById('sheetDutyRefNo').value = b.dutyRefNo || '';
     document.getElementById('sheetRemarks').value = b.remarks || '';
@@ -446,7 +472,7 @@ function renderBookingSheetForm(b) {
     } else {
         document.getElementById('sheetVendorSelect').value = b.vendorName ? 'ADHOC' : '';
     }
-    document.getElementById('sheetVendorPackage').value = b.vendorPackage || '';
+    setPackageSelectValue('sheetVendorPackage', b.vendorPackage);
     document.getElementById('sheetVendorPenalty').value = b.vendorPenalty || 0;
     document.getElementById('sheetVendorFixRate').value = b.vendorFixRate || 0;
     document.getElementById('sheetVendorKmRate').value = b.vendorKmRate || 0;
@@ -1753,7 +1779,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sheetInputs = [
         'sheetTravelDate', 'sheetRepHours', 'sheetRepMinutes',
         'sheetClientSelect', 'sheetVehicleType', 'sheetPackageType', 'sheetGuestName',
-        'sheetVendorSelect', 'sheetVehicleNumber', 'sheetDriverName', 'sheetDrAcptToggle'
+        'sheetVendorSelect', 'sheetVendorPackage', 'sheetVehicleNumber', 'sheetDriverName', 'sheetDrAcptToggle'
     ];
 
     sheetInputs.forEach(id => {
