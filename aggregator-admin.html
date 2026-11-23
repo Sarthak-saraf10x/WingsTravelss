@@ -2239,7 +2239,7 @@
     <div class="modal-overlay" id="bookingDetailModal">
         <div class="modal-container extra-large" style="max-height: 94vh;">
             <!-- Top Banner -->
-            <div class="modal-header" style="background: #0f172a; color: #fff; padding: 14px 20px; border-bottom: none;">
+            <div class="modal-header" style="background: #0f172a; color: #fff; padding: 14px 68px 14px 20px; border-bottom: none; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; position: relative;">
                 <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; font-weight: 600;">D.S. / Booking:</span>
@@ -2255,24 +2255,31 @@
                     </div>
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <button type="button" class="btn btn-outline btn-sm" onclick="openCommunicationModalFromSheet()" style="color: #60a5fa; border-color: rgba(96,165,250,0.4);" title="Stage-wise Email & WhatsApp Messages">
-                        <i class="bi bi-chat-dots-fill"></i> Messages
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm" onclick="openCommunicationModalFromSheet()" style="background: rgba(96, 165, 250, 0.15); color: #93c5fd !important; border: 1px solid rgba(96, 165, 250, 0.4); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem;" title="Stage-wise Email & WhatsApp Messages" onmouseover="this.style.background='rgba(96,165,250,0.28)'" onmouseout="this.style.background='rgba(96,165,250,0.15)'">
+                        <i class="bi bi-chat-dots-fill" style="color: #60a5fa; font-size: 0.95rem;"></i>
+                        <span style="color: #93c5fd;">Messages</span>
                     </button>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="copyCurrentActiveBooking()" style="color: #fff; border-color: rgba(255,255,255,0.25);" title="Copy this booking">
-                        <i class="bi bi-copy"></i> Copy
+                    <button type="button" class="btn btn-sm" onclick="copyCurrentActiveBooking()" style="background: rgba(255, 255, 255, 0.12); color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.35); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem;" title="Copy this booking" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">
+                        <i class="bi bi-copy" style="color: #38bdf8; font-size: 0.95rem;"></i>
+                        <span style="color: #ffffff;">Copy Booking</span>
                     </button>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="if(currentActiveBooking && currentActiveBooking._id) openPrintDutySlipModal(currentActiveBooking._id); else showToast('Please save first', 'error');" style="color: #fff; border-color: rgba(255,255,255,0.25);" title="Print Duty Slip">
-                        <i class="bi bi-printer"></i> Print Duty
+                    <button type="button" class="btn btn-sm" onclick="openPrintDutySlipModal(currentActiveBooking ? (currentActiveBooking._id || currentActiveBooking.bookingNo || currentActiveBooking) : null);" style="background: rgba(234, 88, 12, 0.2); color: #ffffff !important; border: 1px solid rgba(234, 88, 12, 0.5); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem;" title="Print Duty Slip" onmouseover="this.style.background='rgba(234,88,12,0.35)'" onmouseout="this.style.background='rgba(234,88,12,0.2)'">
+                        <i class="bi bi-printer-fill" style="color: #fb923c; font-size: 0.95rem;"></i>
+                        <span style="color: #ffffff;">Print Duty Slip</span>
                     </button>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="if(currentActiveBooking && currentActiveBooking._id) openPrintPlyCardModal(currentActiveBooking._id); else showToast('Please save first', 'error');" style="color: #fff; border-color: rgba(255,255,255,0.25);" title="Print Guest Placard">
-                        <i class="bi bi-card-text"></i> Print Placard
+                    <button type="button" class="btn btn-sm" onclick="if(currentActiveBooking && currentActiveBooking._id) openPrintPlyCardModal(currentActiveBooking._id); else showToast('Please save first', 'error');" style="background: rgba(255, 255, 255, 0.12); color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.35); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem;" title="Print Guest Placard" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">
+                        <i class="bi bi-card-text" style="color: #c084fc; font-size: 0.95rem;"></i>
+                        <span style="color: #ffffff;">Print Placard</span>
                     </button>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="promptCancelCurrentBooking()" style="color: #fca5a5; border-color: rgba(239,68,68,0.4);" title="Cancel this booking">
-                        <i class="bi bi-x-circle"></i> Cancel
+                    <button type="button" class="btn btn-sm" onclick="promptCancelCurrentBooking()" style="background: rgba(239, 68, 68, 0.15); color: #fca5a5 !important; border: 1px solid rgba(239, 68, 68, 0.4); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem;" title="Cancel this booking" onmouseover="this.style.background='rgba(239,68,68,0.28)'" onmouseout="this.style.background='rgba(239,68,68,0.15)'">
+                        <i class="bi bi-x-circle-fill" style="color: #f87171; font-size: 0.95rem;"></i>
+                        <span style="color: #fca5a5;">Cancel Booking</span>
                     </button>
-                    <button class="modal-close-btn" onclick="closeModal('bookingDetailModal'); if (typeof currentActiveBooking !== 'undefined') currentActiveBooking = null;" style="color: #94a3b8; font-size: 1.6rem; margin-left: 8px;">&times;</button>
                 </div>
+
+                <!-- Window Top-Right Close Button -->
+                <button class="modal-close-btn" onclick="closeModal('bookingDetailModal'); if (typeof currentActiveBooking !== 'undefined') currentActiveBooking = null;" style="position: absolute; top: 14px; right: 18px; color: #94a3b8; font-size: 1.8rem; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); cursor: pointer; line-height: 1; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.25)'; this.style.color='#ef4444'; this.style.borderColor='rgba(239,68,68,0.4)';" onmouseout="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#94a3b8'; this.style.borderColor='rgba(255,255,255,0.12)';" title="Close window">&times;</button>
             </div>
 
             <!-- Live Completeness & Status Bar -->
@@ -2885,6 +2892,38 @@
                     <i class="bi bi-shield-check" style="color: #10b981;"></i> All communications are logged in Audit Logs & Activity Trail
                 </div>
                 <button type="button" class="btn btn-outline" onclick="closeModal('communicationModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 14. DUTY SLIP / RENTAL AGREEMENT PREVIEW & PRINT MODAL -->
+    <div class="modal-overlay" id="dutySlipPreviewModal">
+        <div class="modal-container" style="max-width: 900px; width: 96%; max-height: 96vh;">
+            <div class="modal-header" style="background: #0f172a; color: #fff; padding: 12px 64px 12px 20px; display: flex; justify-content: space-between; align-items: center; position: relative;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="bi bi-printer-fill" style="color: #ea580c; font-size: 1.25rem;"></i>
+                        <span style="font-weight: 700; font-size: 1.05rem;">Duty Slip & Rental Agreement</span>
+                    </div>
+                    <span id="dsPreviewNoBadge" style="font-family: monospace; background: rgba(255,255,255,0.15); padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.9rem;">#--</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" class="btn btn-sm" onclick="openDutySlipInNewWindow()" style="background: rgba(255, 255, 255, 0.12); color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.35); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; border-radius: 6px;" title="Open in dedicated tab" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">
+                        <i class="bi bi-box-arrow-up-right" style="color: #60a5fa; font-size: 0.95rem;"></i>
+                        <span style="color: #ffffff;">Open in Dedicated Tab</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="printDutySlipNow()" style="background: #ea580c; border: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 6px;">
+                        <i class="bi bi-printer"></i> Print Duty Slip (A4)
+                    </button>
+                </div>
+                <!-- Window Top-Right Close Button -->
+                <button class="modal-close-btn" onclick="closeModal('dutySlipPreviewModal')" style="position: absolute; top: 12px; right: 18px; color: #94a3b8; font-size: 1.8rem; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); cursor: pointer; line-height: 1; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.25)'; this.style.color='#ef4444'; this.style.borderColor='rgba(239,68,68,0.4)';" onmouseout="this.style.background='rgba(255,255,255,0.06)'; this.style.color='#94a3b8'; this.style.borderColor='rgba(255,255,255,0.12)';" title="Close window">&times;</button>
+            </div>
+
+            <div class="modal-body" style="padding: 16px; overflow-y: auto; background: #cbd5e1; display: flex; justify-content: center;">
+                <div id="dutySlipPrintArea">
+                    <!-- Populated dynamically by openPrintDutySlipModal() -->
+                </div>
             </div>
         </div>
     </div>

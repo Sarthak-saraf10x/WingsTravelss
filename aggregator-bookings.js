@@ -1156,63 +1156,547 @@ async function emailGeneratedInvoice(bookingId) {
     }
 }
 
+// ==========================================================================
+// REDESIGNED CORPORATE A4 DUTY SLIP & RENTAL AGREEMENT GENERATOR
+// ==========================================================================
+
+function buildDutySlipHtml(b, broker = null) {
+    if (!b) return '';
+    const prof = broker || (typeof brokerProfile !== 'undefined' ? brokerProfile : {}) || {};
+
+    const companyTitle = prof.companyLegalName || "WING'S TRAVELS";
+    const address = prof.address || "Office No. 402, Business Bay, Pune-Bangalore Highway";
+    const city = prof.city || "Pune";
+    const state = prof.state || "Maharashtra";
+    const stateCode = prof.stateCode || "27-MH";
+    const phone = prof.phone || "+91 98220 12345 / 020-25678900";
+    const email = prof.email || prof.billingEmail || "dispatch@wingstravels.com";
+    const gstin = prof.gstin || "27AAACR1234M1Z5";
+    const jurisdiction = (prof.jurisdictionCity || "PUNE").toUpperCase();
+
+    const dsNo = b.dutySlipNo || b.bookingNo || 'AUTO';
+    let travelDateFormatted = 'Date TBD';
+    if (b.travelDate) {
+        try {
+            const d = new Date(b.travelDate);
+            travelDateFormatted = isNaN(d.getTime()) ? b.travelDate : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        } catch (e) {
+            travelDateFormatted = b.travelDate;
+        }
+    }
+
+    const location = b.location || city || 'Pune';
+    const dutyRefNo = b.dutyRefNo || b.poNumber || b.bookingRef || 'N/A';
+    const clientName = b.clientName || (typeof companiesList !== 'undefined' && companiesList.find(c => c._id === b.clientId)?.companyName) || 'Corporate Client';
+    const guestName = b.guestName || 'Valued Guest';
+    const guestMobile = b.guestPhone || b.bookedByPhone || 'N/A';
+    const bookedBy = b.bookedBy || b.createdBy || 'Direct / Admin';
+    const reportingAddress = b.reportingAddress || 'As per client instructions';
+    const dropAddress = b.dropAddress || b.destination || 'Local Disposal / Destination';
+    const vehicleType = b.vehicleType || 'Sedan / SUV';
+    const vehicleSend = b.vehicleSend || b.vehicleType || 'Dzire / Etios';
+    const vehicleNumber = b.vehicleNumber || 'To Be Allotted';
+    const packageType = b.packageType || 'Standard Package';
+    const paymentMode = (b.paymentMode || 'CREDIT').toUpperCase();
+
+    let repTimeStr = 'Timing TBD';
+    if (!b.noTiming) {
+        if (b.reqTime) repTimeStr = b.reqTime;
+        else if (b.repHours) repTimeStr = `${String(b.repHours).padStart(2, '0')}:${String(b.repMinutes || '00').padStart(2, '0')} hrs`;
+    }
+    const destination = b.destination || b.tripType || 'Local Disposal';
+    const driverName = b.driverName || 'To Be Allotted';
+    const driverMobile = b.driverPhone || 'N/A';
+
+    // Readings & Timings
+    const r = b.dutyCloseReadings || {};
+    const d = b.dutyCloseDetails || {};
+    const garageOutTime = r.garageOutTime || (b.repHours ? `${String(b.repHours).padStart(2, '0')}:${String(b.repMinutes || '00').padStart(2, '0')}` : '');
+    const garageOutKm = r.garageOutKm || '';
+    const reportingTime = r.reportingTime || '';
+    const reportingKm = r.reportingKm || '';
+    const releasingTime = r.releasingTime || '';
+    const releasingKm = r.releasingKm || '';
+    const garageInTime = r.garageInTime || '';
+    const garageInKm = r.garageInKm || '';
+
+    const totalHours = r.totalHours || d.totalHours || '';
+    const totalKms = r.totalKms || d.totalKm || '';
+
+    // Reimbursements / Expenses
+    const toll = d.tollAmount ? `₹${Number(d.tollAmount).toLocaleString('en-IN')}` : '';
+    const parking = d.parkingAmount ? `₹${Number(d.parkingAmount).toLocaleString('en-IN')}` : '';
+    const borderTax = d.borderTax ? `₹${Number(d.borderTax).toLocaleString('en-IN')}` : '';
+    const night = d.nightAllowance ? `₹${Number(d.nightAllowance).toLocaleString('en-IN')}` : '';
+    const other = d.otherCharges ? `₹${Number(d.otherCharges).toLocaleString('en-IN')}` : '';
+
+    let totalExpNum = (Number(d.tollAmount) || 0) + (Number(d.parkingAmount) || 0) + (Number(d.borderTax) || 0) + (Number(d.nightAllowance) || 0) + (Number(d.otherCharges) || 0);
+    const totalExpenses = totalExpNum > 0 ? `₹${totalExpNum.toLocaleString('en-IN')}` : '';
+
+    return `
+        <div class="ds-a4-sheet" id="dutySlipPrintSheet">
+            <!-- 1. Document Header (3-Column Top Block) -->
+            <div class="ds-header-grid">
+                <!-- Left: Logo Badge & Company Title -->
+                <div class="ds-header-left">
+                    <div class="ds-brand-block">
+                        <img src="${prof.logoUrl || 'images/Logo.png'}" alt="Wings Tours & Travels" class="ds-logo-img" onerror="this.onerror=null; this.src='images/Logo.png';">
+                        <div>
+                            <div class="ds-company-title">${companyTitle}</div>
+                            <div class="ds-company-subtitle">Corporate Mobility & Rental Services</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center: Office Address & Contact -->
+                <div class="ds-header-center">
+                    <div style="font-weight: 600; color: #0f172a; margin-bottom: 1px;">${address}</div>
+                    <div>${city}, ${state} - ${stateCode}</div>
+                    <div style="margin-top: 2px;"><strong>24x7 Helpline:</strong> ${phone}</div>
+                    <div><strong>Email:</strong> ${email}</div>
+                    <div style="margin-top: 1px;"><strong>GSTIN:</strong> ${gstin}</div>
+                </div>
+
+                <!-- Right: Metadata Box -->
+                <div class="ds-header-right">
+                    <div class="ds-meta-box">
+                        <div class="ds-meta-row ds-meta-ds-row">
+                            <span class="ds-meta-lbl">DUTY SLIP NO:</span>
+                            <span class="ds-meta-val ds-meta-ds-no">#${dsNo}</span>
+                        </div>
+                        <div class="ds-meta-row">
+                            <span class="ds-meta-lbl">Date:</span>
+                            <span class="ds-meta-val">${travelDateFormatted}</span>
+                        </div>
+                        <div class="ds-meta-row">
+                            <span class="ds-meta-lbl">City / Location:</span>
+                            <span class="ds-meta-val">${location}</span>
+                        </div>
+                        <div class="ds-meta-row">
+                            <span class="ds-meta-lbl">Duty Ref / PO:</span>
+                            <span class="ds-meta-val">${dutyRefNo}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Full-Width Section Title Bar -->
+            <div class="ds-title-banner">
+                DUTY SLIP & RENTAL AGREEMENT
+            </div>
+
+            <!-- 2. Client & Trip Details Grid -->
+            <div class="ds-section-table">
+                <!-- Row 1: 4-Column Table -->
+                <table class="ds-grid-table">
+                    <tbody>
+                        <tr>
+                            <td class="ds-lbl" style="width: 16%;">Client Company:</td>
+                            <td class="ds-val" style="width: 34%; font-weight: 700; color: #0f172a;">${clientName}</td>
+                            <td class="ds-lbl" style="width: 16%;">Guest / Renter:</td>
+                            <td class="ds-val" style="width: 34%; font-weight: 700; color: #0f172a;">${guestName}</td>
+                        </tr>
+                        <tr>
+                            <td class="ds-lbl">Guest Mobile:</td>
+                            <td class="ds-val">${guestMobile}</td>
+                            <td class="ds-lbl">Booked By:</td>
+                            <td class="ds-val">${bookedBy}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Row 2: 2-Column Split Addresses -->
+                <table class="ds-grid-table" style="border-top: none;">
+                    <tbody>
+                        <tr>
+                            <td class="ds-lbl" style="width: 16%;">Reporting Address:</td>
+                            <td class="ds-val" style="width: 34%; font-size: 9px; line-height: 1.3;">${reportingAddress}</td>
+                            <td class="ds-lbl" style="width: 16%;">Drop / Route:</td>
+                            <td class="ds-val" style="width: 34%; font-size: 9px; line-height: 1.3;">${dropAddress}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Row 3: 2-Column Split (Vehicle on Left, Dispatch on Right) -->
+                <table class="ds-grid-table" style="border-top: none;">
+                    <tbody>
+                        <tr>
+                            <td class="ds-lbl" style="width: 18%;">Vehicle Category:</td>
+                            <td class="ds-val" style="width: 32%;">${vehicleType}</td>
+                            <td class="ds-lbl" style="width: 18%;">Reporting Time:</td>
+                            <td class="ds-val" style="width: 32%; font-weight: 700;">${repTimeStr}</td>
+                        </tr>
+                        <tr>
+                            <td class="ds-lbl">Vehicle Sent & No:</td>
+                            <td class="ds-val" style="font-weight: 700; color: #0f172a;">${vehicleSend} — <span style="font-size: 1.05em; letter-spacing: 0.5px;">${vehicleNumber}</span></td>
+                            <td class="ds-lbl">Trip Type / Nature:</td>
+                            <td class="ds-val">${destination}</td>
+                        </tr>
+                        <tr>
+                            <td class="ds-lbl">Package / Tariff:</td>
+                            <td class="ds-val">${packageType}</td>
+                            <td class="ds-lbl">Chauffeur Name:</td>
+                            <td class="ds-val" style="font-weight: 700;">${driverName}</td>
+                        </tr>
+                        <tr>
+                            <td class="ds-lbl">Billing / Payment:</td>
+                            <td class="ds-val"><span class="ds-badge-payment">${paymentMode}</span></td>
+                            <td class="ds-lbl">Chauffeur Mobile:</td>
+                            <td class="ds-val">${driverMobile}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 3. Odometer, Timing & Extra Charges Split Grid (60% Left, 40% Right) -->
+            <div class="ds-usage-expenses-container">
+                <!-- Left: Garage Log & Passenger Usage Record (60%) -->
+                <div class="ds-usage-box">
+                    <div class="ds-subbanner">GARAGE LOG & PASSENGER USAGE RECORD</div>
+                    <table class="ds-reading-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 38%;">Reading Milestone</th>
+                                <th style="width: 21%;">Time (24h)</th>
+                                <th style="width: 23%;">Odometer (KM)</th>
+                                <th style="width: 18%;">Initials</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="ds-milestone">1. Garage Out (Wing's / Vendor)</td>
+                                <td class="ds-blank-entry">${garageOutTime}</td>
+                                <td class="ds-blank-entry">${garageOutKm}</td>
+                                <td class="ds-blank-entry"></td>
+                            </tr>
+                            <tr class="ds-guest-verify-hdr">
+                                <td colspan="4">★ TO BE FILLED & VERIFIED BY GUEST / RENTER:</td>
+                            </tr>
+                            <tr>
+                                <td class="ds-milestone ds-guest-row"><strong>2. Guest Reporting (Opening)</strong></td>
+                                <td class="ds-blank-entry ds-guest-row font-bold">${reportingTime}</td>
+                                <td class="ds-blank-entry ds-guest-row font-bold">${reportingKm}</td>
+                                <td class="ds-blank-entry ds-guest-row"></td>
+                            </tr>
+                            <tr>
+                                <td class="ds-milestone ds-guest-row"><strong>3. Guest Releasing (Closing)</strong></td>
+                                <td class="ds-blank-entry ds-guest-row font-bold">${releasingTime}</td>
+                                <td class="ds-blank-entry ds-guest-row font-bold">${releasingKm}</td>
+                                <td class="ds-blank-entry ds-guest-row"></td>
+                            </tr>
+                            <tr>
+                                <td class="ds-milestone">4. Garage In (Wing's / Vendor)</td>
+                                <td class="ds-blank-entry">${garageInTime}</td>
+                                <td class="ds-blank-entry">${garageInKm}</td>
+                                <td class="ds-blank-entry"></td>
+                            </tr>
+                            <tr class="ds-total-row">
+                                <td class="ds-total-label">TOTAL USAGE RECORD:</td>
+                                <td class="ds-total-val"><strong>${totalHours}</strong> Hrs</td>
+                                <td class="ds-total-val"><strong>${totalKms}</strong> KMs</td>
+                                <td class="ds-total-val">1 Day</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Right: Reimbursements & Incidentals (40%) -->
+                <div class="ds-expenses-box">
+                    <div class="ds-subbanner">REIMBURSEMENTS & INCIDENTALS (₹)</div>
+                    <table class="ds-expenses-table">
+                        <tbody>
+                            <tr>
+                                <td class="ds-exp-lbl">Toll Charges (₹):</td>
+                                <td class="ds-exp-val">${toll}</td>
+                            </tr>
+                            <tr>
+                                <td class="ds-exp-lbl">Parking Charges (₹):</td>
+                                <td class="ds-exp-val">${parking}</td>
+                            </tr>
+                            <tr>
+                                <td class="ds-exp-lbl">Interstate / Permit Tax (₹):</td>
+                                <td class="ds-exp-val">${borderTax}</td>
+                            </tr>
+                            <tr>
+                                <td class="ds-exp-lbl">Night Halt / Allowance (₹):</td>
+                                <td class="ds-exp-val">${night}</td>
+                            </tr>
+                            <tr>
+                                <td class="ds-exp-lbl">Other / Sundry Expenses (₹):</td>
+                                <td class="ds-exp-val">${other}</td>
+                            </tr>
+                            <tr class="ds-exp-total-row">
+                                <td class="ds-exp-lbl font-bold" style="color: #0f172a;">TOTAL EXTRA CHARGES (₹):</td>
+                                <td class="ds-exp-val font-bold" style="color: #0f172a;">${totalExpenses}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="ds-exp-note">
+                        * Note: Parking, toll and state permit taxes are extra as per actuals. Attach physical receipts.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Footer: Guest Feedback Rating Matrix, Terms & Signature (55% Left, 45% Right) -->
+            <div class="ds-footer-container">
+                <!-- Left: Service Feedback Checklist (55%) -->
+                <div class="ds-feedback-box">
+                    <div class="ds-subbanner">GUEST / RENTER SERVICE FEEDBACK</div>
+                    <table class="ds-feedback-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 48%;">Service Performance Parameter</th>
+                                <th style="width: 13%;">Exc.</th>
+                                <th style="width: 13%;">Good</th>
+                                <th style="width: 13%;">Avg.</th>
+                                <th style="width: 13%;">Poor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1. Vehicle Cleanliness, AC & Condition</td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                            </tr>
+                            <tr>
+                                <td>2. Chauffeur Grooming & Punctuality</td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                            </tr>
+                            <tr>
+                                <td>3. Chauffeur Safe Driving & Route Skill</td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                            </tr>
+                            <tr>
+                                <td>4. Booking & Coordination Desk</td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                            </tr>
+                            <tr>
+                                <td>5. Overall Trip & Rental Experience</td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                                <td class="ds-chk-cell"><span class="ds-chkbox"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Right: Terms & Authorization / Signatures (45%) -->
+                <div class="ds-terms-signature-box">
+                    <div class="ds-terms-box">
+                        <div class="ds-terms-title">RENTAL TERMS & CONDITIONS</div>
+                        <div class="ds-terms-content">
+                            1. KMs & hours calculated garage-to-garage unless contract specifies.<br>
+                            2. Parking, toll, airport & interstate taxes are extra as per actuals.<br>
+                            3. Please verify opening & closing readings before signing.<br>
+                            4. Subject to ${jurisdiction} jurisdiction.
+                        </div>
+                    </div>
+
+                    <div class="ds-signatures-area">
+                        <div class="ds-sig-row">
+                            <div class="ds-sig-block">
+                                <div class="ds-sig-line"></div>
+                                <div class="ds-sig-lbl">Guest / Renter Signature</div>
+                            </div>
+                            <div class="ds-sig-block">
+                                <div class="ds-sig-line"></div>
+                                <div class="ds-sig-lbl">Date & Releasing Time</div>
+                            </div>
+                        </div>
+                        <div class="ds-driver-sig-strip">
+                            <span>Chauffeur / Driver Signature: _______________________</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+let activePrintBookingRecord = null;
+
 // Print Duty Slip modal
 function openPrintDutySlipModal(bookingId) {
-    const b = findBookingInList(bookingId);
-    if (!b) return;
+    let b = null;
+    if (bookingId && typeof bookingId === 'object') {
+        b = bookingId;
+    } else if (bookingId) {
+        b = findBookingInList(bookingId);
+    }
+    if (!b && typeof currentActiveBooking !== 'undefined' && currentActiveBooking) {
+        b = currentActiveBooking;
+    }
+    if (!b) {
+        if (typeof showToast === 'function') showToast('No booking selected', 'error');
+        return;
+    }
+
+    activePrintBookingRecord = b;
+    const broker = (typeof brokerProfile !== 'undefined' ? brokerProfile : null) || {};
+    const html = buildDutySlipHtml(b, broker);
+
+    const printArea = document.getElementById('dutySlipPrintArea');
+    if (printArea) {
+        printArea.innerHTML = html;
+    }
+
+    const noBadge = document.getElementById('dsPreviewNoBadge');
+    if (noBadge) {
+        noBadge.textContent = `#${b.dutySlipNo || b.bookingNo || 'AUTO'}`;
+    }
+
+    if (typeof openModal === 'function') {
+        openModal('dutySlipPreviewModal');
+    } else {
+        const m = document.getElementById('dutySlipPreviewModal');
+        if (m) m.classList.add('active');
+    }
+}
+
+function printDutySlipNow() {
+    let b = activePrintBookingRecord;
+    if (!b) {
+        const printArea = document.getElementById('dutySlipPrintArea');
+        if (!printArea || !printArea.innerHTML.trim()) {
+            if (typeof showToast === 'function') showToast('No duty slip loaded to print.', 'error');
+            return;
+        }
+    }
+
+    const broker = (typeof brokerProfile !== 'undefined' ? brokerProfile : null) || {};
+    const slipHtml = b ? buildDutySlipHtml(b, broker) : document.getElementById('dutySlipPrintArea').innerHTML;
+    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+
+    // Create or reuse hidden iframe to print ONLY the duty slip
+    let printIframe = document.getElementById('dutySlipPrintIframe');
+    if (!printIframe) {
+        printIframe = document.createElement('iframe');
+        printIframe.id = 'dutySlipPrintIframe';
+        printIframe.name = 'dutySlipPrintIframe';
+        printIframe.style.position = 'fixed';
+        printIframe.style.top = '-9999px';
+        printIframe.style.left = '-9999px';
+        printIframe.style.width = '0';
+        printIframe.style.height = '0';
+        printIframe.style.border = 'none';
+        document.body.appendChild(printIframe);
+    }
+
+    const doc = printIframe.contentDocument || printIframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <base href="${baseUrl}">
+            <meta charset="UTF-8">
+            <title>Duty Slip #${(b && (b.dutySlipNo || b.bookingNo)) || 'PRINT'} - WING'S TRAVELS</title>
+            <link rel="stylesheet" href="aggregator-bookings.css">
+            <style>
+                @page {
+                    size: A4 portrait;
+                    margin: 6mm 8mm;
+                }
+                * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    box-sizing: border-box;
+                }
+                html, body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: #ffffff !important;
+                    width: 100% !important;
+                    display: block !important;
+                }
+                .ds-a4-sheet {
+                    margin: 0 auto !important;
+                    border: 1px solid #000 !important;
+                    box-shadow: none !important;
+                    page-break-after: avoid !important;
+                    break-after: avoid !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+            </style>
+        </head>
+        <body>
+            ${slipHtml}
+        </body>
+        </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+        try {
+            printIframe.contentWindow.focus();
+            printIframe.contentWindow.print();
+        } catch (e) {
+            console.error('Iframe print error, falling back to window.print', e);
+            window.print();
+        }
+    }, 300);
+}
+
+function openDutySlipInNewWindow() {
+    if (!activePrintBookingRecord) return;
+    const b = activePrintBookingRecord;
+    const broker = (typeof brokerProfile !== 'undefined' ? brokerProfile : null) || {};
+    const slipHtml = buildDutySlipHtml(b, broker);
+    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
 
     const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        if (typeof showToast === 'function') showToast('Popup blocked. Please allow popups for this site.', 'error');
+        return;
+    }
+
     printWindow.document.write(`
         <!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
-            <title>Duty Slip #${b.dutySlipNo}</title>
+            <base href="${baseUrl}">
+            <meta charset="UTF-8">
+            <title>Duty Slip #${b.dutySlipNo || b.bookingNo || 'PRINT'} - WING'S TRAVELS</title>
+            <link rel="stylesheet" href="aggregator-bookings.css">
             <style>
-                body { font-family: 'Arial', sans-serif; padding: 24px; color: #0f172a; }
-                .box { border: 2px solid #0f172a; padding: 20px; }
-                table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-                th, td { border: 1px solid #94a3b8; padding: 8px; }
-                th { background: #f8fafc; }
+                * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    box-sizing: border-box;
+                }
+                body {
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                    display: flex;
+                    justify-content: center;
+                }
+                .ds-a4-sheet {
+                    border: 1px solid #000;
+                    box-shadow: none;
+                    margin: 0;
+                }
+                @page {
+                    size: A4 portrait;
+                    margin: 6mm 8mm;
+                }
             </style>
         </head>
         <body onload="window.print()">
-            <div class="box">
-                <div style="display:flex; justify-content:space-between; border-bottom:2px solid #0f172a; padding-bottom:8px;">
-                    <div>
-                        <h2 style="margin:0;">RED CARS / WINGS TRAVELS</h2>
-                        <div>Pune Helpline: +91 98220 12345</div>
-                    </div>
-                    <div style="text-align:right;">
-                        <h2 style="margin:0; color:#ea580c;">DUTY SLIP</h2>
-                        <div style="font-size:16px; font-weight:bold;">No: #${b.dutySlipNo}</div>
-                    </div>
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:14px 0;">
-                    <div>Client: <strong>${b.clientName}</strong></div>
-                    <div>Date: <strong>${b.travelDate ? new Date(b.travelDate).toLocaleDateString('en-IN') : ''}</strong></div>
-                    <div>Guest: <strong>${b.guestName} (${b.guestPhone || ''})</strong></div>
-                    <div>Reporting Time: <strong>${b.reqTime || ''}</strong></div>
-                    <div>Reporting Address: <strong>${b.reportingAddress || ''}</strong></div>
-                    <div>Vehicle No: <strong>${b.vehicleNumber || 'Unassigned'}</strong></div>
-                    <div>Driver: <strong>${b.driverName || 'Unassigned'} (${b.driverPhone || ''})</strong></div>
-                    <div>Package: <strong>${b.packageType || ''}</strong></div>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Reading</th><th>Garage Out</th><th>Reporting</th><th>Releasing</th><th>Garage In</th><th>Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>KM</td><td>${b.dutyCloseReadings?.garageOutKm || ''}</td><td>${b.dutyCloseReadings?.reportingKm || ''}</td><td>${b.dutyCloseReadings?.releasingKm || ''}</td><td>${b.dutyCloseReadings?.garageInKm || ''}</td><td><strong>${b.dutyCloseReadings?.totalKms || ''}</strong></td></tr>
-                        <tr><td>Time</td><td>${b.dutyCloseReadings?.garageOutTime || ''}</td><td>${b.dutyCloseReadings?.reportingTime || ''}</td><td>${b.dutyCloseReadings?.releasingTime || ''}</td><td>${b.dutyCloseReadings?.garageInTime || ''}</td><td><strong>${b.dutyCloseReadings?.totalHours || ''}</strong></td></tr>
-                    </tbody>
-                </table>
-                <div style="margin-top:24px; display:flex; justify-content:space-between;">
-                    <div>Driver Signature: __________________</div>
-                    <div>Guest Signature: __________________</div>
-                </div>
-            </div>
+            ${slipHtml}
         </body>
         </html>
     `);
@@ -1642,3 +2126,11 @@ function getFallbackBookings() {
         }
     ];
 }
+
+if (typeof window !== 'undefined') {
+    window.buildDutySlipHtml = buildDutySlipHtml;
+    window.openPrintDutySlipModal = openPrintDutySlipModal;
+    window.printDutySlipNow = printDutySlipNow;
+    window.openDutySlipInNewWindow = openDutySlipInNewWindow;
+}
+

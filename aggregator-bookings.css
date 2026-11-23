@@ -613,4 +613,480 @@ tr.row-dr-duty-close:hover {
     color: #0f172a;
 }
 
+/* ==========================================================================
+   WING'S TRAVELS - CORPORATE DUTY SLIP & RENTAL AGREEMENT A4 PRINT STYLES
+   ========================================================================== */
+
+.ds-a4-sheet {
+    background: #ffffff;
+    width: 200mm;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 7mm 8mm;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #0f172a;
+    font-size: 11px;
+    line-height: 1.32;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    border: 1.5px solid #0f172a;
+}
+
+.ds-header-grid {
+    display: grid;
+    grid-template-columns: 36% 37% 27%;
+    gap: 8px;
+    align-items: center;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 6px;
+    margin-bottom: 4px;
+}
+
+.ds-brand-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ds-logo-img {
+    width: 46px;
+    height: 46px;
+    object-fit: contain;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.ds-logo-badge {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    border: 2px solid #ea580c;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ea580c;
+    font-weight: 900;
+    font-size: 24px;
+    font-family: var(--font-outfit, sans-serif);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+}
+
+.ds-company-title {
+    font-family: var(--font-outfit, sans-serif);
+    font-size: 17px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: 0.5px;
+    line-height: 1.1;
+}
+
+.ds-company-subtitle {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #ea580c;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+.ds-header-center {
+    font-size: 9.5px;
+    color: #334155;
+    line-height: 1.35;
+    border-left: 1px solid #cbd5e1;
+    border-right: 1px solid #cbd5e1;
+    padding: 0 8px;
+}
+
+.ds-header-right {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.ds-meta-box {
+    border: 1.5px solid #0f172a;
+    background: #f8fafc;
+    border-radius: 4px;
+    padding: 4px 7px;
+    width: 100%;
+}
+
+.ds-meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    padding: 1px 0;
+}
+
+.ds-meta-ds-row {
+    border-bottom: 1px dashed #cbd5e1;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
+}
+
+.ds-meta-lbl {
+    color: #64748b;
+    font-weight: 600;
+}
+
+.ds-meta-val {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.ds-meta-ds-no {
+    color: #ea580c;
+    font-size: 12px;
+    font-family: monospace;
+}
+
+.ds-title-banner {
+    background: #0f172a;
+    color: #ffffff;
+    text-align: center;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 0;
+    margin-bottom: 4px;
+    border-radius: 2px;
+}
+
+.ds-grid-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+}
+
+.ds-grid-table td {
+    border: 1px solid #334155;
+    padding: 3.5px 6px;
+    font-size: 9.5px;
+    vertical-align: middle;
+}
+
+.ds-lbl {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+}
+
+.ds-val {
+    color: #0f172a;
+}
+
+.ds-badge-payment {
+    background: #e2e8f0;
+    color: #0f172a;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 8.5px;
+    text-transform: uppercase;
+}
+
+.ds-usage-expenses-container {
+    display: grid;
+    grid-template-columns: 59% 41%;
+    gap: 5px;
+    margin-top: 4px;
+}
+
+.ds-subbanner {
+    background: #1e293b;
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2.5px 6px;
+    text-align: center;
+    border: 1px solid #1e293b;
+}
+
+.ds-reading-table, .ds-expenses-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ds-reading-table th {
+    background: #f1f5f9;
+    border: 1px solid #334155;
+    font-size: 8.5px;
+    font-weight: 700;
+    padding: 3px 4px;
+    text-align: center;
+    color: #334155;
+}
+
+.ds-reading-table td {
+    border: 1px solid #334155;
+    padding: 3px 5px;
+    font-size: 9px;
+}
+
+.ds-milestone {
+    color: #1e293b;
+    font-size: 9px;
+}
+
+.ds-blank-entry {
+    text-align: center;
+    font-family: monospace;
+    font-size: 10px;
+    height: 17px;
+    background: #ffffff;
+}
+
+.ds-guest-verify-hdr {
+    background: #fffbeb !important;
+    color: #92400e !important;
+    font-size: 8px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 2px !important;
+    border: 1px solid #f59e0b !important;
+}
+
+.ds-guest-row {
+    background: #fdfdfd;
+}
+
+.ds-total-row {
+    background: #f1f5f9;
+    font-weight: 700;
+}
+
+.ds-total-label {
+    font-weight: 800;
+    font-size: 9px;
+    color: #0f172a;
+}
+
+.ds-total-val {
+    text-align: center;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.ds-expenses-table td {
+    border: 1px solid #334155;
+    padding: 3px 6px;
+    font-size: 9px;
+}
+
+.ds-exp-lbl {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    font-size: 9px;
+    width: 65%;
+}
+
+.ds-exp-val {
+    text-align: right;
+    font-family: monospace;
+    font-size: 10px;
+    width: 35%;
+    height: 17px;
+}
+
+.ds-exp-total-row {
+    background: #f1f5f9;
+}
+
+.ds-exp-note {
+    font-size: 8px;
+    color: #64748b;
+    font-style: italic;
+    padding: 2px 4px;
+    line-height: 1.2;
+}
+
+.ds-footer-container {
+    display: grid;
+    grid-template-columns: 55% 45%;
+    gap: 5px;
+    margin-top: 4px;
+}
+
+.ds-feedback-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ds-feedback-table th {
+    background: #f1f5f9;
+    border: 1px solid #334155;
+    font-size: 8px;
+    font-weight: 700;
+    padding: 2.5px 3px;
+    color: #334155;
+    text-align: center;
+}
+
+.ds-feedback-table td {
+    border: 1px solid #334155;
+    padding: 2px 4px;
+    font-size: 8px;
+}
+
+.ds-chk-cell {
+    text-align: center;
+    width: 13%;
+}
+
+.ds-chkbox {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1px solid #475569;
+    border-radius: 1px;
+    vertical-align: middle;
+}
+
+.ds-terms-signature-box {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.ds-terms-box {
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    padding: 4px 6px;
+    font-size: 7.8px;
+    color: #475569;
+    line-height: 1.25;
+    margin-bottom: 3px;
+}
+
+.ds-terms-title {
+    font-weight: 800;
+    color: #0f172a;
+    font-size: 8.5px;
+    margin-bottom: 2px;
+}
+
+.ds-signatures-area {
+    border: 1px solid #334155;
+    padding: 5px 8px;
+    background: #ffffff;
+}
+
+.ds-sig-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+.ds-sig-block {
+    text-align: center;
+}
+
+.ds-sig-line {
+    border-top: 1px solid #0f172a;
+    margin-bottom: 2px;
+}
+
+.ds-sig-lbl {
+    font-size: 8px;
+    font-weight: 700;
+    color: #0f172a;
+    text-transform: uppercase;
+}
+
+.ds-driver-sig-strip {
+    border-top: 1px dashed #cbd5e1;
+    margin-top: 5px;
+    padding-top: 3px;
+    font-size: 8px;
+    color: #475569;
+    text-align: left;
+}
+
+/* Print Rules - Fits strictly onto 1 A4 page */
+@page {
+    size: A4 portrait;
+    margin: 6mm 8mm;
+}
+
+@media print {
+    body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .app-layout,
+    .main-wrapper,
+    .main-content,
+    .tab-panel,
+    .table-card,
+    .sidebar,
+    .top-header,
+    .content-area,
+    .bottom-nav,
+    .toast-container,
+    .modal-overlay:not(#dutySlipPreviewModal),
+    .modal-header,
+    .modal-footer,
+    .modal-close-btn,
+    .btn,
+    button {
+        display: none !important;
+    }
+    .modal-overlay#dutySlipPreviewModal {
+        position: static !important;
+        display: block !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+    .modal-overlay#dutySlipPreviewModal .modal-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    .modal-overlay#dutySlipPreviewModal .modal-body {
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+        overflow: visible !important;
+        display: block !important;
+    }
+    #dutySlipPrintArea {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .ds-a4-sheet {
+        width: 100% !important;
+        max-width: 100% !important;
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 4mm 6mm !important;
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+
 
