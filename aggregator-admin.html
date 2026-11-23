@@ -890,8 +890,8 @@
             </div>
 
             <ul class="sidebar-menu">
-                <li style="margin-bottom: 8px;">
-                    <a href="admin.html" class="sidebar-link" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #94a3b8;">
+                <li id="sidebarBackToTours" style="margin-bottom: 8px;">
+                    <a href="admin.html" id="navBackToToursLink" class="sidebar-link" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #94a3b8;">
                         <i class="bi bi-arrow-left-circle"></i>
                         <span>Back to Tours Admin</span>
                     </a>
@@ -906,22 +906,22 @@
                     </a>
                 </li>
 
-                <div class="menu-heading">MASTER DATA MODULES</div>
-                <li>
+                <div class="menu-heading" id="headingMasterData">MASTER DATA MODULES</div>
+                <li id="sidebarItemCompanies">
                     <a class="sidebar-link" data-tab="companies">
                         <i class="bi bi-buildings"></i>
                         <span>Client Companies & Rates</span>
                         <span class="badge-counter" id="countBadgeCompanies">0</span>
                     </a>
                 </li>
-                <li>
+                <li id="sidebarItemVendors">
                     <a class="sidebar-link" data-tab="vendors">
                         <i class="bi bi-truck"></i>
                         <span>Vendors & Fleet</span>
                         <span class="badge-counter" id="countBadgeVendors">0</span>
                     </a>
                 </li>
-                <li>
+                <li id="sidebarItemUsers">
                     <a class="sidebar-link" data-tab="users">
                         <i class="bi bi-people"></i>
                         <span>Dispatchers & Users</span>
@@ -929,8 +929,8 @@
                     </a>
                 </li>
 
-                <div class="menu-heading">SETTINGS & COMPLIANCE</div>
-                <li>
+                <div class="menu-heading" id="headingSettings">SETTINGS & COMPLIANCE</div>
+                <li id="sidebarItemProfile">
                     <a class="sidebar-link" data-tab="profile">
                         <i class="bi bi-sliders"></i>
                         <span>Broker & Billing Profile</span>
@@ -1518,21 +1518,59 @@
             <!-- =============================================================== -->
             <section id="tab-audit" class="tab-panel">
                 <div class="card">
-                    <div class="card-header">
-                        <h2><i class="bi bi-clock-history"></i> System Activity & Audit Trail</h2>
-                        <div class="filter-bar">
-                            <select id="auditFilterType" class="filter-select">
-                                <option value="">All Entity Types</option>
-                                <option value="BROKER_PROFILE">Broker Profile</option>
-                                <option value="USER">Staff / Dispatcher</option>
+                    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <h2><i class="bi bi-clock-history"></i> System Activity & Audit Trail</h2>
+                            <span id="auditScopeBadge" class="badge badge-purple" style="font-weight: 700;">
+                                <i class="bi bi-shield-check"></i> All System Activity (Admin View)
+                            </span>
+                        </div>
+                        <div class="filter-bar" style="flex-wrap: wrap; gap: 8px;">
+                            <div class="search-box" style="min-width: 200px;">
+                                <i class="bi bi-search"></i>
+                                <input type="text" id="auditSearchInput" placeholder="Booking/D.S. No, Target ID, text...">
+                            </div>
+                            <select id="auditFilterUser" class="filter-select admin-only-filter" style="max-width: 190px;">
+                                <option value="">All Users / Dispatchers</option>
+                            </select>
+                            <select id="auditFilterRole" class="filter-select admin-only-filter" style="max-width: 140px;">
+                                <option value="">All Roles</option>
+                                <option value="ADMIN">ADMIN</option>
+                                <option value="DISPATCHER">DISPATCHER</option>
+                            </select>
+                            <select id="auditFilterAction" class="filter-select" style="max-width: 170px;">
+                                <option value="">All Action Types</option>
+                                <option value="BOOKING">Booking Actions</option>
+                                <option value="PLOTTING">Plotting & Timing</option>
+                                <option value="DUTY">Duty Slips & Close</option>
+                                <option value="INVOICE">Invoices</option>
+                                <option value="CANCEL">Cancellations</option>
+                                <option value="USER">User Management</option>
+                                <option value="COMPANY">Companies & Rates</option>
+                                <option value="VENDOR">Vendors & Fleet</option>
+                            </select>
+                            <select id="auditFilterType" class="filter-select" style="max-width: 140px;">
+                                <option value="">All Entities</option>
+                                <option value="BOOKING">Booking</option>
+                                <option value="INVOICE">Invoice</option>
+                                <option value="USER">Staff / User</option>
                                 <option value="COMPANY">Company</option>
                                 <option value="RATE_CARD">Rate Card</option>
                                 <option value="VENDOR">Vendor</option>
                                 <option value="VEHICLE">Vehicle</option>
                                 <option value="DRIVER">Driver</option>
+                                <option value="BROKER_PROFILE">Broker Profile</option>
                             </select>
-                            <button class="btn btn-outline btn-sm" id="btnRefreshAudit">
-                                <i class="bi bi-arrow-clockwise"></i> Refresh Logs
+                            <div style="display: inline-flex; align-items: center; gap: 4px;">
+                                <input type="date" id="auditFromDate" class="form-input" style="padding: 5px 8px; font-size: 0.8rem; width: 130px;" title="From Date">
+                                <span style="font-size: 0.75rem; color: #94a3b8;">-</span>
+                                <input type="date" id="auditToDate" class="form-input" style="padding: 5px 8px; font-size: 0.8rem; width: 130px;" title="To Date">
+                            </div>
+                            <button class="btn btn-outline btn-sm" id="btnClearAuditFilters" title="Reset all filters">
+                                <i class="bi bi-x-circle"></i> Clear
+                            </button>
+                            <button class="btn btn-outline btn-sm" id="btnRefreshAudit" title="Reload latest logs">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
                             </button>
                         </div>
                     </div>
@@ -1542,16 +1580,15 @@
                                 <thead>
                                     <tr>
                                         <th>Timestamp</th>
-                                        <th>Action</th>
-                                        <th>Entity Type</th>
-                                        <th>Target Name / Item</th>
-                                        <th>Performed By</th>
-                                        <th>Details</th>
+                                        <th>Action Type</th>
+                                        <th>Target Entity & ID</th>
+                                        <th>Actor (User / Role)</th>
+                                        <th>Summary & Changes</th>
                                     </tr>
                                 </thead>
                                 <tbody id="auditTableBody">
                                     <tr>
-                                        <td colspan="6" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                        <td colspan="5" style="text-align: center; padding: 40px; color: #94a3b8;">
                                             Loading audit logs...
                                         </td>
                                     </tr>
@@ -2052,16 +2089,21 @@
                             <input type="text" id="uUsername" required placeholder="dispatcher1">
                         </div>
                         <div class="form-group">
-                            <label>Email Address</label>
-                            <input type="email" id="uEmail" placeholder="rahul@wings.com">
+                            <label>Email Address <span class="required">*</span></label>
+                            <input type="email" id="uEmail" required placeholder="rahul@wings.com">
                         </div>
                         <div class="form-group">
-                            <label>Phone Number <span class="required">*</span></label>
+                            <label>Phone / WhatsApp Number <span class="required">*</span></label>
                             <input type="text" id="uPhone" required placeholder="+91 98500 44332">
                         </div>
                         <div class="form-group" id="userPasswordGroup">
                             <label>Password <span class="required">*</span></label>
-                            <input type="password" id="uPassword" placeholder="Min 6 characters">
+                            <div style="display: flex; gap: 6px;">
+                                <input type="password" id="uPassword" placeholder="Min 6 characters" style="flex: 1;">
+                                <button type="button" class="btn btn-outline btn-icon" onclick="togglePasswordVisibility('uPassword', this)" title="Show/Hide Password" style="height: 38px;">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>Role <span class="required">*</span></label>
@@ -2069,6 +2111,17 @@
                                 <option value="DISPATCHER" selected>DISPATCHER</option>
                                 <option value="ADMIN">ADMIN</option>
                             </select>
+                        </div>
+                        <div class="form-group full-width" id="userStatusGroup">
+                            <label>Account Status</label>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+                                <label class="status-toggle">
+                                    <input type="checkbox" id="uStatus" checked onchange="document.getElementById('uStatusLabel').textContent = this.checked ? 'Active' : 'Inactive'; document.getElementById('uStatusLabel').style.color = this.checked ? '#10b981' : '#ef4444';">
+                                    <span class="slider"></span>
+                                </label>
+                                <span id="uStatusLabel" style="font-size: 0.88rem; font-weight: 700; color: #10b981;">Active</span>
+                                <span style="font-size: 0.78rem; color: #64748b;">(Deactivated users are immediately blocked from logging in or performing actions)</span>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -2095,7 +2148,12 @@
                     </p>
                     <div class="form-group">
                         <label>New Password (Min 6 characters) <span class="required">*</span></label>
-                        <input type="password" id="resetNewPassword" required minlength="6" placeholder="Enter new password">
+                        <div style="display: flex; gap: 6px;">
+                            <input type="password" id="resetNewPassword" required minlength="6" placeholder="Enter new password" style="flex: 1;">
+                            <button type="button" class="btn btn-outline btn-icon" onclick="togglePasswordVisibility('resetNewPassword', this)" title="Show/Hide Password" style="height: 38px;">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -2740,8 +2798,79 @@
             }
         };
 
+        // Role-Based UI Guard
+        function applyRoleAccessUI(role) {
+            const isDispatcher = (role || '').toUpperCase() === 'DISPATCHER';
+
+            // Sidebar navigation guards
+            const backLink = document.getElementById('sidebarBackToTours');
+            if (backLink) backLink.style.display = isDispatcher ? 'none' : '';
+
+            const masterHeading = document.getElementById('headingMasterData');
+            if (masterHeading) masterHeading.style.display = isDispatcher ? 'none' : '';
+
+            const compItem = document.getElementById('sidebarItemCompanies');
+            if (compItem) compItem.style.display = isDispatcher ? 'none' : '';
+
+            const vendItem = document.getElementById('sidebarItemVendors');
+            if (vendItem) vendItem.style.display = isDispatcher ? 'none' : '';
+
+            const userItem = document.getElementById('sidebarItemUsers');
+            if (userItem) userItem.style.display = isDispatcher ? 'none' : '';
+
+            const profItem = document.getElementById('sidebarItemProfile');
+            if (profItem) profItem.style.display = isDispatcher ? 'none' : '';
+
+            // User role badge styling
+            const roleEl = document.getElementById('sidebarUserRole');
+            if (roleEl) {
+                roleEl.textContent = isDispatcher ? 'DISPATCHER' : 'ADMIN';
+                roleEl.style.color = isDispatcher ? '#38bdf8' : '#c084fc';
+            }
+
+            // Audit Scope badge and Admin-only filters
+            const auditBadge = document.getElementById('auditScopeBadge');
+            if (auditBadge) {
+                if (isDispatcher) {
+                    auditBadge.className = 'badge badge-blue';
+                    auditBadge.innerHTML = '<i class="bi bi-person-check"></i> Scoped to Your Activity Only';
+                } else {
+                    auditBadge.className = 'badge badge-purple';
+                    auditBadge.innerHTML = '<i class="bi bi-shield-check"></i> All System Activity (Admin View)';
+                }
+            }
+
+            document.querySelectorAll('.admin-only-filter').forEach(el => {
+                el.style.display = isDispatcher ? 'none' : '';
+            });
+
+            // If a Dispatcher is on a master data tab, switch to bookings
+            if (isDispatcher && ['companies', 'vendors', 'users', 'profile'].includes(activeTab)) {
+                switchTab('bookings');
+            }
+        }
+
+        // Show/hide password input helper
+        function togglePasswordVisibility(inputId, btnEl) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = btnEl.querySelector('i');
+            if (icon) {
+                icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+            }
+        }
+
         function switchTab(tabKey, updateHash = true) {
             if (!TAB_CONFIG[tabKey]) tabKey = 'bookings';
+
+            const role = (currentAdminUser?.role || localStorage.getItem('wings_role') || 'ADMIN').toUpperCase();
+            if (role === 'DISPATCHER' && ['companies', 'vendors', 'users', 'profile'].includes(tabKey)) {
+                showToast('Access restricted: Master Data and Admin settings are only available to Administrators.', 'error');
+                tabKey = 'bookings';
+            }
+
             activeTab = tabKey;
 
             try {
@@ -3722,12 +3851,25 @@
         // MODULE 4: DISPATCHER & USER MANAGEMENT
         // =====================================================================
         async function loadUsers() {
+            const role = (currentAdminUser?.role || localStorage.getItem('wings_role') || 'ADMIN').toUpperCase();
+            if (role !== 'ADMIN') return;
+
             const res = await fetchAuth(`${API_BASE}/aggregator/users`);
             if (res && res.success) {
                 usersList = res.data || [];
                 renderUsersTable();
                 updateUserStats();
+                populateAuditUserFilter();
             }
+        }
+
+        function populateAuditUserFilter() {
+            const userSelect = document.getElementById('auditFilterUser');
+            if (!userSelect) return;
+            const currentVal = userSelect.value;
+            userSelect.innerHTML = '<option value="">All Users / Dispatchers</option>' +
+                usersList.map(u => `<option value="${u.username}">${u.fullName || u.username} (@${u.username} - ${u.role})</option>`).join('');
+            if (currentVal) userSelect.value = currentVal;
         }
 
         function updateUserStats() {
@@ -3784,6 +3926,7 @@
                                 <input type="checkbox" ${u.status ? 'checked' : ''} onchange="toggleUserStatus('${u._id}', this.checked)">
                                 <span class="slider"></span>
                             </label>
+                            <span style="font-size:0.75rem; font-weight:600; margin-left:6px; color:${u.status ? '#10b981' : '#ef4444'};">${u.status ? 'Active' : 'Inactive'}</span>
                         </td>
                         <td>
                             <div style="font-size:0.8rem; color:#334155;">${createdDate}</div>
@@ -3791,6 +3934,9 @@
                         </td>
                         <td style="text-align:right;">
                             <div style="display:inline-flex; gap:6px;">
+                                <button class="btn btn-outline btn-sm" onclick="filterAuditByUser('${u.username}', '${u._id}')" title="View Activity Logs" style="color:#6366f1; border-color:#c7d2fe;">
+                                    <i class="bi bi-clock-history"></i> Logs
+                                </button>
                                 <button class="btn btn-outline btn-sm" onclick="openResetPasswordModal('${u._id}', '${u.username}')" title="Reset Staff Password" style="color:#f59e0b; border-color:#fde68a;">
                                     <i class="bi bi-key-fill"></i> Reset PW
                                 </button>
@@ -3805,12 +3951,16 @@
         }
 
         function openAddUserModal() {
-            document.getElementById('userModalTitle').innerHTML = '<i class="bi bi-person-plus"></i> Create Dispatcher / Staff Account';
+            document.getElementById('userModalTitle').innerHTML = '<i class="bi bi-person-plus"></i> Create Dispatcher Account';
             document.getElementById('userEditId').value = '';
             document.getElementById('userForm').reset();
             document.getElementById('userPasswordGroup').style.display = 'flex';
             document.getElementById('uPassword').required = true;
+            document.getElementById('uUsername').readOnly = false;
             document.getElementById('uRole').value = 'DISPATCHER';
+            document.getElementById('uStatus').checked = true;
+            document.getElementById('uStatusLabel').textContent = 'Active';
+            document.getElementById('uStatusLabel').style.color = '#10b981';
             openModal('userModal');
         }
 
@@ -3828,6 +3978,9 @@
             document.getElementById('uRole').value = (u.role || 'DISPATCHER').toUpperCase();
             document.getElementById('userPasswordGroup').style.display = 'none';
             document.getElementById('uPassword').required = false;
+            document.getElementById('uStatus').checked = u.status !== false;
+            document.getElementById('uStatusLabel').textContent = u.status !== false ? 'Active' : 'Inactive';
+            document.getElementById('uStatusLabel').style.color = u.status !== false ? '#10b981' : '#ef4444';
 
             openModal('userModal');
         }
@@ -3840,7 +3993,8 @@
                 username: document.getElementById('uUsername').value.trim(),
                 email: document.getElementById('uEmail').value.trim(),
                 phoneNumber: document.getElementById('uPhone').value.trim(),
-                role: document.getElementById('uRole').value
+                role: document.getElementById('uRole').value,
+                status: document.getElementById('uStatus').checked
             };
 
             if (!editId) {
@@ -3902,10 +4056,43 @@
         // =====================================================================
         // MODULE 5: AUDIT LOGS
         // =====================================================================
+        function filterAuditByUser(username, userId) {
+            switchTab('audit');
+            const userSelect = document.getElementById('auditFilterUser');
+            if (userSelect) userSelect.value = username;
+            const searchInput = document.getElementById('auditSearchInput');
+            if (searchInput) searchInput.value = '';
+            loadAuditLogs();
+        }
+
+        function clearAuditFilters() {
+            if (document.getElementById('auditSearchInput')) document.getElementById('auditSearchInput').value = '';
+            if (document.getElementById('auditFilterUser')) document.getElementById('auditFilterUser').value = '';
+            if (document.getElementById('auditFilterRole')) document.getElementById('auditFilterRole').value = '';
+            if (document.getElementById('auditFilterAction')) document.getElementById('auditFilterAction').value = '';
+            if (document.getElementById('auditFilterType')) document.getElementById('auditFilterType').value = '';
+            if (document.getElementById('auditFromDate')) document.getElementById('auditFromDate').value = '';
+            if (document.getElementById('auditToDate')) document.getElementById('auditToDate').value = '';
+            loadAuditLogs();
+        }
+
         async function loadAuditLogs() {
-            const filterType = document.getElementById('auditFilterType').value;
-            let url = `${API_BASE}/aggregator/audit-logs?limit=80`;
-            if (filterType) url += `&entityType=${filterType}`;
+            const filterType = document.getElementById('auditFilterType')?.value || '';
+            const filterUser = document.getElementById('auditFilterUser')?.value || '';
+            const filterRole = document.getElementById('auditFilterRole')?.value || '';
+            const filterAction = document.getElementById('auditFilterAction')?.value || '';
+            const filterSearch = document.getElementById('auditSearchInput')?.value?.trim() || '';
+            const fromDate = document.getElementById('auditFromDate')?.value || '';
+            const toDate = document.getElementById('auditToDate')?.value || '';
+
+            let url = `${API_BASE}/aggregator/audit-logs?limit=150`;
+            if (filterType) url += `&entityType=${encodeURIComponent(filterType)}`;
+            if (filterUser) url += `&user=${encodeURIComponent(filterUser)}`;
+            if (filterRole) url += `&role=${encodeURIComponent(filterRole)}`;
+            if (filterAction) url += `&action=${encodeURIComponent(filterAction)}`;
+            if (filterSearch) url += `&search=${encodeURIComponent(filterSearch)}`;
+            if (fromDate) url += `&fromDate=${encodeURIComponent(fromDate)}`;
+            if (toDate) url += `&toDate=${encodeURIComponent(toDate)}`;
 
             const res = await fetchAuth(url);
             if (res && res.success) {
@@ -3915,8 +4102,25 @@
 
         function renderAuditLogs(logs) {
             const tbody = document.getElementById('auditTableBody');
+            const role = (currentAdminUser?.role || localStorage.getItem('wings_role') || 'ADMIN').toUpperCase();
+            const currentUserId = String(currentAdminUser?._id || currentAdminUser?.id || '');
+            const currentUsername = String(currentAdminUser?.username || '').toLowerCase();
+
+            // Strict double-check for Dispatcher scoping on client side
+            if (role === 'DISPATCHER') {
+                logs = logs.filter(l => 
+                    String(l.userId) === currentUserId ||
+                    String(l.actor_id) === currentUserId ||
+                    String(l.username || '').toLowerCase() === currentUsername ||
+                    String(l.actor_name || '').toLowerCase() === currentUsername
+                );
+            }
+
             if (!logs.length) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:36px; color:#94a3b8;">No audit logs recorded yet.</td></tr>`;
+                const emptyMsg = role === 'DISPATCHER' 
+                    ? 'No activity logs found for your account yet. Actions you perform will appear here.' 
+                    : 'No audit logs found matching the selected filters.';
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:36px; color:#94a3b8;">${emptyMsg}</td></tr>`;
                 return;
             }
 
@@ -3926,26 +4130,52 @@
                     hour: '2-digit', minute: '2-digit', second: '2-digit'
                 });
 
+                const actName = log.action_type || log.action || '';
                 let actionBadgeClass = 'badge-blue';
-                if (log.action.includes('CREATE') || log.action.includes('ADD')) actionBadgeClass = 'badge-green';
-                if (log.action.includes('DEACTIVATE') || log.action.includes('DELETE')) actionBadgeClass = 'badge-red';
-                if (log.action.includes('RESET') || log.action.includes('ACTIVATE')) actionBadgeClass = 'badge-amber';
+                if (actName.includes('CREATE') || actName.includes('ADD')) actionBadgeClass = 'badge-green';
+                if (actName.includes('DEACTIVATE') || actName.includes('DELETE') || actName.includes('CANCEL')) actionBadgeClass = 'badge-red';
+                if (actName.includes('RESET') || actName.includes('ACTIVATE') || actName.includes('CLOSE')) actionBadgeClass = 'badge-amber';
+                if (actName.includes('PLOTTING')) actionBadgeClass = 'badge-purple';
 
-                const detailsSummary = typeof log.details === 'object' && log.details !== null
-                    ? Object.entries(log.details).map(([k, v]) => `<span style="display:inline-block; margin-right:8px;"><strong>${k}:</strong> ${v}</span>`).join('')
-                    : (log.details || '-');
+                const targetEntity = log.target_entity || log.entityType || '-';
+                const targetId = log.target_id || log.entityId || '';
+                const targetDisplay = targetId
+                    ? `<span class="badge badge-gray">${targetEntity}</span> <strong style="color:#0f172a; margin-left:4px;">#${targetId}</strong>`
+                    : `<span class="badge badge-gray">${targetEntity}</span> <span style="color:#334155; margin-left:4px;">${log.entityName || '-'}</span>`;
+
+                const actorName = log.actor_name || log.username || 'System';
+                const actorRole = (log.actor_role || log.userRole || 'DISPATCHER').toUpperCase();
+                const actorBadge = actorRole === 'ADMIN'
+                    ? '<span class="badge badge-purple" style="font-size:0.68rem;"><i class="bi bi-shield-check"></i> ADMIN</span>'
+                    : '<span class="badge badge-blue" style="font-size:0.68rem;"><i class="bi bi-headset"></i> DISPATCHER</span>';
+
+                let detailsText = '';
+                if (typeof log.details === 'object' && log.details !== null) {
+                    detailsText = Object.entries(log.details)
+                        .filter(([k]) => k !== 'warnings' || (Array.isArray(log.details.warnings) && log.details.warnings.length))
+                        .map(([k, v]) => `<span style="display:inline-block; margin-right:8px; font-size:0.75rem; color:#64748b;"><strong>${k}:</strong> ${v}</span>`)
+                        .join('');
+                } else if (log.details) {
+                    detailsText = `<span style="font-size:0.75rem; color:#64748b;">${log.details}</span>`;
+                }
+
+                const summaryText = log.summary || log.entityName || actName;
 
                 return `
                     <tr>
-                        <td style="font-size:0.8rem; color:#475569; white-space:nowrap;">${ts}</td>
-                        <td><span class="badge ${actionBadgeClass}">${log.action}</span></td>
-                        <td><span class="badge badge-gray" style="font-weight:700;">${log.entityType}</span></td>
-                        <td><strong style="color:#0f172a;">${log.entityName || '-'}</strong></td>
-                        <td>
-                            <div>${log.username}</div>
-                            <span style="font-size:0.72rem; color:#94a3b8;">ID: ${log.userId}</span>
+                        <td style="font-size:0.8rem; color:#475569; white-space:nowrap;">
+                            <i class="bi bi-clock" style="color:#94a3b8; margin-right:4px;"></i>${ts}
                         </td>
-                        <td style="font-size:0.78rem; color:#475569;">${detailsSummary}</td>
+                        <td><span class="badge ${actionBadgeClass}">${actName}</span></td>
+                        <td>${targetDisplay}</td>
+                        <td>
+                            <div style="font-weight:600; color:#0f172a;">${actorName}</div>
+                            <div>${actorBadge}</div>
+                        </td>
+                        <td>
+                            <div style="font-size:0.82rem; font-weight:600; color:#1e293b; margin-bottom:2px;">${summaryText}</div>
+                            <div>${detailsText}</div>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -3955,6 +4185,13 @@
         // INITIALIZATION & USER AUTH
         // =====================================================================
         async function initDashboard() {
+            // Check auth notice from admin.html redirect
+            const authNotice = sessionStorage.getItem('wings_auth_notice');
+            if (authNotice) {
+                sessionStorage.removeItem('wings_auth_notice');
+                setTimeout(() => showToast(authNotice, 'error'), 250);
+            }
+
             // Check auth token - if missing, attempt auto-login
             if (!token) {
                 console.log('No token found in localStorage, attempting auto-login with default admin credentials...');
@@ -3982,13 +4219,19 @@
                     const pRes = await fetchAuth(`${API_BASE}/admin/profile`);
                     if (pRes && pRes.success) {
                         currentAdminUser = pRes.admin;
-                        document.getElementById('sidebarUserName').textContent = currentAdminUser.username || 'Admin';
-                        document.getElementById('sidebarUserRole').textContent = (currentAdminUser.role || 'ADMIN').toUpperCase();
+                        const role = (currentAdminUser.role || 'ADMIN').toUpperCase();
+                        localStorage.setItem('wings_role', role);
+                        document.getElementById('sidebarUserName').textContent = currentAdminUser.fullName || currentAdminUser.username || 'User';
+                        document.getElementById('sidebarUserRole').textContent = role;
                         document.getElementById('sidebarUserAvatar').textContent = (currentAdminUser.username || 'A')[0].toUpperCase();
+                        applyRoleAccessUI(role);
                     }
                 } catch (e) {
                     console.warn('Could not fetch user profile, proceeding with token');
+                    applyRoleAccessUI(localStorage.getItem('wings_role') || 'ADMIN');
                 }
+            } else {
+                applyRoleAccessUI(localStorage.getItem('wings_role') || 'ADMIN');
             }
 
             // Sidebar navigation event listeners
@@ -4010,21 +4253,36 @@
             document.getElementById('btnSidebarLogout').addEventListener('click', () => {
                 localStorage.removeItem('wings_token');
                 localStorage.removeItem('wings_role');
+                localStorage.removeItem('wings_user');
                 window.location.href = 'admin.html';
             });
 
-            // Search filters
-            document.getElementById('companySearchInput').addEventListener('input', loadCompanies);
-            document.getElementById('companyStatusFilter').addEventListener('change', loadCompanies);
-            document.getElementById('vendorSearchInput').addEventListener('input', loadVendors);
-            document.getElementById('vendorStatusFilter').addEventListener('change', loadVendors);
-            document.getElementById('userSearchInput').addEventListener('input', renderUsersTable);
-            document.getElementById('userRoleFilter').addEventListener('change', renderUsersTable);
-            document.getElementById('auditFilterType').addEventListener('change', loadAuditLogs);
-            document.getElementById('btnRefreshAudit').addEventListener('click', loadAuditLogs);
+            // Master data filters
+            document.getElementById('companySearchInput')?.addEventListener('input', loadCompanies);
+            document.getElementById('companyStatusFilter')?.addEventListener('change', loadCompanies);
+            document.getElementById('vendorSearchInput')?.addEventListener('input', loadVendors);
+            document.getElementById('vendorStatusFilter')?.addEventListener('change', loadVendors);
+            document.getElementById('userSearchInput')?.addEventListener('input', renderUsersTable);
+            document.getElementById('userRoleFilter')?.addEventListener('change', renderUsersTable);
+
+            // Audit Log filter listeners
+            document.getElementById('auditFilterType')?.addEventListener('change', loadAuditLogs);
+            document.getElementById('auditFilterUser')?.addEventListener('change', loadAuditLogs);
+            document.getElementById('auditFilterRole')?.addEventListener('change', loadAuditLogs);
+            document.getElementById('auditFilterAction')?.addEventListener('change', loadAuditLogs);
+            document.getElementById('auditSearchInput')?.addEventListener('input', loadAuditLogs);
+            document.getElementById('auditFromDate')?.addEventListener('change', loadAuditLogs);
+            document.getElementById('auditToDate')?.addEventListener('change', loadAuditLogs);
+            document.getElementById('btnClearAuditFilters')?.addEventListener('click', clearAuditFilters);
+            document.getElementById('btnRefreshAudit')?.addEventListener('click', loadAuditLogs);
 
             // Preload master data
-            await Promise.all([loadCompanies(), loadVendors(), loadBrokerProfile()]);
+            const role = (currentAdminUser?.role || localStorage.getItem('wings_role') || 'ADMIN').toUpperCase();
+            if (role === 'ADMIN') {
+                await Promise.all([loadCompanies(), loadVendors(), loadBrokerProfile(), loadUsers()]);
+            } else {
+                await Promise.all([loadCompanies(), loadVendors(), loadBrokerProfile()]);
+            }
 
             // Restore active tab from URL hash, query param, or saved localStorage (defaults to bookings)
             const hashTab = window.location.hash.replace('#', '').trim();
@@ -4034,7 +4292,10 @@
                 savedTab = localStorage.getItem('wings_aggregator_active_tab') || '';
             } catch (e) {}
 
-            const targetTab = TAB_CONFIG[hashTab] ? hashTab : (TAB_CONFIG[queryTab] ? queryTab : (TAB_CONFIG[savedTab] ? savedTab : 'bookings'));
+            let targetTab = TAB_CONFIG[hashTab] ? hashTab : (TAB_CONFIG[queryTab] ? queryTab : (TAB_CONFIG[savedTab] ? savedTab : 'bookings'));
+            if (role === 'DISPATCHER' && ['companies', 'vendors', 'users', 'profile'].includes(targetTab)) {
+                targetTab = 'bookings';
+            }
             switchTab(targetTab, true);
         }
 

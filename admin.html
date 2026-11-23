@@ -2007,6 +2007,16 @@
             ? 'http://localhost:5000/api'
             : 'https://wings-backend-jada.onrender.com/api';
         let token = localStorage.getItem('wings_token');
+
+        // Immediate Page Access Guard: Dispatchers must never access admin.html
+        (function enforceDispatcherGuard() {
+            const currentRole = (localStorage.getItem('wings_role') || '').toUpperCase();
+            if (currentRole === 'DISPATCHER') {
+                sessionStorage.setItem('wings_auth_notice', 'Access restricted: Master Data and Admin settings are only available to Administrators.');
+                window.location.replace('aggregator-admin.html');
+            }
+        })();
+
         let packagesList = [];
         let galleryList = [];
         let vehiclesList = [];
@@ -2236,10 +2246,11 @@
 
                     const resData = await response.json();
                     if (resData.success) {
-                        const userRole = resData.admin && resData.admin.role || 'admin';
-                        if (userRole === 'user') {
+                        const userRole = (resData.admin && resData.admin.role || 'ADMIN').toUpperCase();
+                        if (userRole === 'USER') {
                             localStorage.removeItem('wings_token');
                             localStorage.removeItem('wings_role');
+                            localStorage.removeItem('wings_user');
                             token = null;
                             showToast('Login successful! Redirecting...', 'success');
                             setTimeout(() => {
@@ -2251,6 +2262,16 @@
                         token = resData.token;
                         localStorage.setItem('wings_token', token);
                         localStorage.setItem('wings_role', userRole);
+                        localStorage.setItem('wings_user', JSON.stringify(resData.admin));
+
+                        // DISPATCHER Login Redirect: Go directly to aggregator-admin.html
+                        if (userRole === 'DISPATCHER') {
+                            showToast('Welcome, Dispatcher! Redirecting to Dispatch Portal...', 'success');
+                            setTimeout(() => {
+                                window.location.href = 'aggregator-admin.html';
+                            }, 500);
+                            return;
+                        }
 
                         // Hide login screen
                         document.getElementById('loginScreen').style.opacity = 0;
@@ -2258,7 +2279,7 @@
                             document.getElementById('loginScreen').style.display = 'none';
                         }, 400);
 
-                        showToast('Welcome back, admin!', 'success');
+                        showToast('Welcome back, Admin!', 'success');
                         initDashboard();
                     } else {
                         errorDiv.innerText = resData.message || 'Invalid username or password.';
@@ -2568,10 +2589,11 @@
 
                 const resData = await res.json();
                 if (resData.success) {
-                    const userRole = resData.admin && resData.admin.role || 'user';
-                    if (userRole === 'user') {
+                    const userRole = (resData.admin && resData.admin.role || 'ADMIN').toUpperCase();
+                    if (userRole === 'USER') {
                         localStorage.removeItem('wings_token');
                         localStorage.removeItem('wings_role');
+                        localStorage.removeItem('wings_user');
                         token = null;
                         showToast('Login successful! Redirecting...', 'success');
                         setTimeout(() => {
@@ -2583,6 +2605,15 @@
                     token = resData.token;
                     localStorage.setItem('wings_token', token);
                     localStorage.setItem('wings_role', userRole);
+                    localStorage.setItem('wings_user', JSON.stringify(resData.admin));
+
+                    if (userRole === 'DISPATCHER') {
+                        showToast('Welcome, Dispatcher! Redirecting to Dispatch Portal...', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'aggregator-admin.html';
+                        }, 500);
+                        return;
+                    }
 
                     // Hide login screen
                     document.getElementById('loginScreen').style.opacity = 0;
@@ -2590,7 +2621,7 @@
                         document.getElementById('loginScreen').style.display = 'none';
                     }, 400);
 
-                    showToast('Welcome back, admin!', 'success');
+                    showToast('Welcome back, Admin!', 'success');
                     initDashboard();
                 } else {
                     errorDiv.innerText = resData.message || 'Google authentication failed.';
@@ -2618,8 +2649,17 @@
                         return;
                     }
                     const resData = await response.json();
-                    const adminRole = (resData.admin && resData.admin.role || '').toLowerCase();
-                    if (!resData.success || (adminRole !== 'admin' && adminRole !== 'dispatcher')) {
+                    const adminRole = (resData.admin && resData.admin.role || '').toUpperCase();
+
+                    // Block Dispatcher from staying on admin.html
+                    if (adminRole === 'DISPATCHER') {
+                        localStorage.setItem('wings_role', 'DISPATCHER');
+                        sessionStorage.setItem('wings_auth_notice', 'Access restricted: Master Data and Admin settings are only available to Administrators.');
+                        window.location.replace('aggregator-admin.html');
+                        return;
+                    }
+
+                    if (!resData.success || adminRole !== 'ADMIN') {
                         localStorage.removeItem('wings_token');
                         localStorage.removeItem('wings_role');
                         token = null;
