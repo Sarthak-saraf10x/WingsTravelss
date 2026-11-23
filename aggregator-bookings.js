@@ -261,10 +261,6 @@ function renderBookingsTable() {
             ? '<span class="badge badge-green" style="font-weight:700;">YES</span>'
             : '<span class="badge badge-gray" style="font-weight:600;">NO</span>';
 
-        // Direct WhatsApp message link for guest or driver
-        const cleanDrvPhone = (b.driverPhone || '').replace(/[^0-9]/g, '');
-        const drvWaUrl = cleanDrvPhone ? `https://wa.me/${cleanDrvPhone}?text=${encodeURIComponent(`Wings Travels Duty Slip #${b.dutySlipNo}: Pickup for ${b.guestName} on ${travelDateFormatted} at ${b.reqTime || ''}. Vehicle: ${b.vehicleNumber || ''}`)}` : '#';
-
         const bkIdentifier = b._id || b.bookingNo || b.dutySlipNo || '';
 
         return `
@@ -310,11 +306,6 @@ function renderBookingsTable() {
                         <button class="btn btn-outline btn-icon" onclick="openCommunicationModal('${bkIdentifier}')" title="Stage-Wise Email & WhatsApp Messages" style="color:#2563eb;">
                             <i class="bi bi-chat-dots-fill"></i>
                         </button>
-                        ${cleanDrvPhone ? `
-                            <button type="button" class="btn btn-outline btn-icon" onclick="openCommunicationModal('${bkIdentifier}', 'DRIVER')" title="WhatsApp & Email to Driver" style="color:#16a34a;">
-                                <i class="bi bi-whatsapp"></i>
-                            </button>
-                        ` : ''}
                     </div>
                 </td>
             </tr>
