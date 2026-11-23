@@ -95,15 +95,13 @@ function computeBookingStatusClient(b) {
         return 'DR_DUTY_ACCPT';
     }
 
+    // Auto-recognize whether timing is present: true if repHours or reqTime is filled
     const hasTiming = Boolean(
-        !b.noTiming &&
-        (
-            (b.reqTime && String(b.reqTime).trim().length > 0) ||
-            (b.repHours && String(b.repHours).trim().length > 0)
-        )
+        (b.reqTime && String(b.reqTime).trim().length > 0 && String(b.reqTime).trim() !== ':') ||
+        (b.repHours && String(b.repHours).trim().length > 0)
     );
 
-    if (!hasTiming || b.noTiming) {
+    if (!hasTiming) {
         return 'NO_TIMING';
     }
 
@@ -124,7 +122,11 @@ function computeBookingStatusClient(b) {
 
 function getMissingChecklist(b) {
     const missing = [];
-    if (b.noTiming || (!b.reqTime && !b.repHours)) missing.push('Pickup Time');
+    const hasTiming = Boolean(
+        (b.reqTime && String(b.reqTime).trim().length > 0 && String(b.reqTime).trim() !== ':') ||
+        (b.repHours && String(b.repHours).trim().length > 0)
+    );
+    if (!hasTiming) missing.push('Pickup Time');
     if (!b.clientName && !b.clientId) missing.push('Client Company');
     if (!b.travelDate) missing.push('Travel Date');
     if (!b.guestName || !String(b.guestName).trim()) missing.push('Guest Name');
@@ -253,9 +255,14 @@ function renderBookingsTable() {
             ? new Date(b.travelDate).toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : '<span style="color:#94a3b8;">Date pending</span>';
 
-        const reqTimeDisplay = b.noTiming
+        const hasTiming = Boolean(
+            (b.reqTime && String(b.reqTime).trim().length > 0 && String(b.reqTime).trim() !== ':') ||
+            (b.repHours && String(b.repHours).trim().length > 0)
+        );
+
+        const reqTimeDisplay = !hasTiming
             ? '<span style="color:#64748b; font-style:italic;">No Timing</span>'
-            : (b.reqTime || (b.repHours ? `${b.repHours}:${b.repMinutes || '00'}` : '<span style="color:#dc2626; font-weight:600;">Missing</span>'));
+            : (b.reqTime || (b.repHours ? `${b.repHours}:${b.repMinutes || '00'}` : '<span style="color:#64748b; font-style:italic;">No Timing</span>'));
 
         const drAcptBadge = (b.driverAccepted === true || String(b.driverAccepted).toUpperCase() === 'YES')
             ? '<span class="badge badge-green" style="font-weight:700;">YES</span>'
@@ -402,7 +409,8 @@ function renderBookingSheetForm(b) {
     document.getElementById('sheetRepMinutes').value = b.repMinutes || (b.reqTime && b.reqTime.includes(':') ? b.reqTime.split(':')[1] : '');
     document.getElementById('sheetOffHours').value = b.offHours || '';
     document.getElementById('sheetOffMinutes').value = b.offMinutes || '';
-    document.getElementById('sheetNoTimingCheck').checked = Boolean(b.noTiming);
+    const noTimingEl = document.getElementById('sheetNoTimingCheck');
+    if (noTimingEl) noTimingEl.checked = Boolean(b.noTiming);
     document.getElementById('sheetTimingNotes').value = b.timingNotes || '';
 
     // Client
@@ -494,6 +502,8 @@ function collectSheetFormData() {
     const repHours = document.getElementById('sheetRepHours')?.value?.trim() || '';
     const repMinutes = document.getElementById('sheetRepMinutes')?.value?.trim() || '';
     const reqTime = repHours ? `${repHours}:${repMinutes || '00'}` : '';
+    // System auto-detects timing: noTiming is true if reporting hours are empty
+    const noTiming = !repHours;
 
     const vendorSelect = document.getElementById('sheetVendorSelect');
     const vendorId = vendorSelect?.value || '';
@@ -514,7 +524,7 @@ function collectSheetFormData() {
         reqTime,
         offHours: document.getElementById('sheetOffHours')?.value?.trim() || '',
         offMinutes: document.getElementById('sheetOffMinutes')?.value?.trim() || '',
-        noTiming: document.getElementById('sheetNoTimingCheck')?.checked || false,
+        noTiming,
         timingNotes: document.getElementById('sheetTimingNotes')?.value?.trim() || '',
         clientId: clientSelect?.value || '',
         clientName: selectedClientName,
@@ -1741,7 +1751,7 @@ function openPrintPlyCardModal(bookingId) {
 // Bind live listeners in sheet form for auto-completeness feedback
 document.addEventListener('DOMContentLoaded', () => {
     const sheetInputs = [
-        'sheetTravelDate', 'sheetRepHours', 'sheetRepMinutes', 'sheetNoTimingCheck',
+        'sheetTravelDate', 'sheetRepHours', 'sheetRepMinutes',
         'sheetClientSelect', 'sheetVehicleType', 'sheetPackageType', 'sheetGuestName',
         'sheetVendorSelect', 'sheetVehicleNumber', 'sheetDriverName', 'sheetDrAcptToggle'
     ];

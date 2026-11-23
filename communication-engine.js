@@ -362,7 +362,7 @@ function getBookingFieldValue(b, key) {
                 return b.travelDate;
             }
         case 'rep_time':
-            if (b.noTiming) return 'Timing TBD';
+            if (b.noTiming || (!b.reqTime && !b.repHours)) return 'Timing TBD';
             if (b.reqTime) return b.reqTime;
             if (b.repHours) {
                 const hh = String(b.repHours).padStart(2, '0');

@@ -2315,15 +2315,12 @@
                                 <input type="date" id="sheetEndDate">
                             </div>
                             <div class="form-group">
-                                <label>Reporting Time (24h HH : MM) <span class="required">*</span></label>
+                                <label>Reporting Time (24h HH : MM)</label>
                                 <div style="display: flex; gap: 6px; align-items: center;">
                                     <input type="text" id="sheetRepHours" placeholder="HH" maxlength="2" style="width: 55px; text-align: center;">
                                     <span style="font-weight: 700;">:</span>
                                     <input type="text" id="sheetRepMinutes" placeholder="MM" maxlength="2" style="width: 55px; text-align: center;">
-                                    <label style="display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; font-size: 0.75rem; color: #64748b; cursor: pointer;">
-                                        <input type="checkbox" id="sheetNoTimingCheck" onchange="updateSheetLiveCompleteness()">
-                                        <span>No Timing</span>
-                                    </label>
+                                    <span style="font-size: 0.74rem; color: #64748b; margin-left: 8px; font-style: italic;">(Auto "No Timing" if blank)</span>
                                 </div>
                             </div>
                             <div class="form-group">
