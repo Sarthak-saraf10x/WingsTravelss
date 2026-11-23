@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Fleet Aggregator Bookings Stylesheet -->
     <link rel="stylesheet" href="aggregator-bookings.css">
+    <!-- Stage-Wise Communication & Message Generator Engine -->
+    <script src="communication-engine.js"></script>
     
     <style>
         :root {
@@ -1510,6 +1512,75 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Message Templates Customization Card (Admin Only) -->
+                    <div class="card full-width" style="grid-column: 1 / -1; margin-top: 10px;">
+                        <div class="card-header" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <h2><i class="bi bi-chat-quote-fill" style="color: #ea580c;"></i> Stage-Wise Email & WhatsApp Message Templates</h2>
+                                <span class="badge badge-purple">Admin Customization</span>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="resetAdminTemplatesToDefault()" style="color: #64748b;">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Reset to Default
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="saveAdminCustomTemplates()">
+                                    <i class="bi bi-check-lg"></i> Save Templates
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 14px;">
+                                Customize the automated Email and WhatsApp templates used across all 5 booking stages for Clients and Drivers. Live variables like <code>{{ds_no}}</code>, <code>{{guest_name}}</code>, <code>{{travel_date}}</code>, <code>{{vehicle_no}}</code>, and <code>{{driver_name}}</code> are populated automatically during dispatch.
+                            </p>
+                            <!-- Stage & Recipient Selectors for Editor -->
+                            <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
+                                <div>
+                                    <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Stage:</label>
+                                    <select id="tplEditorStage" class="form-control" style="font-size: 0.82rem; padding: 6px 10px; min-width: 220px;" onchange="loadSelectedTemplateInEditor()">
+                                        <option value="BOOKING_CREATED">1. Booking Created / Received</option>
+                                        <option value="DRIVER_ALLOTTED">2. Driver Allotted & Accepted</option>
+                                        <option value="DUTY_STARTED">3. Duty Started</option>
+                                        <option value="DUTY_CLOSED">4. Duty Closed & Invoiced</option>
+                                        <option value="CANCELLED">5. Booking Cancelled</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Recipient:</label>
+                                    <select id="tplEditorRecipient" class="form-control" style="font-size: 0.82rem; padding: 6px 10px; min-width: 180px;" onchange="loadSelectedTemplateInEditor()">
+                                        <option value="CLIENT">Client / Guest / Booker</option>
+                                        <option value="DRIVER">Driver / Vendor</option>
+                                    </select>
+                                </div>
+                                <div style="flex: 1; text-align: right;">
+                                    <span id="tplEditorStatusHint" style="font-size: 0.76rem; color: #16a34a; font-weight: 600;"></span>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <!-- WhatsApp Template -->
+                                <div>
+                                    <label style="font-size: 0.8rem; font-weight: 700; color: #16a34a; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                        <i class="bi bi-whatsapp"></i> WhatsApp Template Text
+                                    </label>
+                                    <textarea id="tplEditorWhatsApp" rows="12" class="form-control" style="font-family: inherit; font-size: 0.82rem; line-height: 1.5; width: 100%; box-sizing: border-box;"></textarea>
+                                </div>
+
+                                <!-- Email Template -->
+                                <div>
+                                    <label style="font-size: 0.8rem; font-weight: 700; color: #2563eb; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                        <i class="bi bi-envelope-fill"></i> Email Subject Line
+                                    </label>
+                                    <input type="text" id="tplEditorEmailSubject" class="form-control" style="font-size: 0.84rem; margin-bottom: 10px; width: 100%; box-sizing: border-box;">
+
+                                    <label style="font-size: 0.8rem; font-weight: 700; color: #2563eb; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                        <i class="bi bi-body-text"></i> Email Body Template
+                                    </label>
+                                    <textarea id="tplEditorEmailBody" rows="9" class="form-control" style="font-family: inherit; font-size: 0.82rem; line-height: 1.5; width: 100%; box-sizing: border-box;"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -2185,6 +2256,9 @@
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="openCommunicationModalFromSheet()" style="color: #60a5fa; border-color: rgba(96,165,250,0.4);" title="Stage-wise Email & WhatsApp Messages">
+                        <i class="bi bi-chat-dots-fill"></i> Messages
+                    </button>
                     <button type="button" class="btn btn-outline btn-sm" onclick="copyCurrentActiveBooking()" style="color: #fff; border-color: rgba(255,255,255,0.25);" title="Copy this booking">
                         <i class="bi bi-copy"></i> Copy
                     </button>
@@ -2648,6 +2722,173 @@
         </div>
     </div>
 
+    <!-- 13. STAGE-WISE COMMUNICATION & MESSAGE GENERATOR MODAL -->
+    <div class="modal-overlay" id="communicationModal">
+        <div class="modal-container comm-modal-container">
+            <div class="modal-header" style="background: #0f172a; color: #fff; padding: 14px 20px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="bi bi-chat-quote-fill" style="color: #ea580c; font-size: 1.25rem;"></i>
+                        <span style="font-weight: 700; font-size: 1.05rem;">Stage-Wise Message Generator</span>
+                    </div>
+                    <span id="commDsBadge" style="font-family: monospace; background: rgba(255,255,255,0.15); padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 0.9rem;">#--</span>
+                    <span id="commStatusBadge"></span>
+                    <span id="commGuestSummary" style="font-size: 0.82rem; color: #94a3b8;"></span>
+                </div>
+                <button class="modal-close-btn" onclick="closeModal('communicationModal')" style="color: #94a3b8; font-size: 1.6rem;">&times;</button>
+            </div>
+
+            <div class="modal-body" style="padding: 16px 20px; overflow-y: auto;">
+                <!-- 1. Lifecycle Stage Selector -->
+                <div style="margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">
+                        1. Select Booking Lifecycle Stage:
+                    </label>
+                    <span id="commAutoStageHint" style="font-size: 0.74rem; color: #ea580c; font-weight: 600;">
+                        <i class="bi bi-lightning-charge-fill"></i> Auto-selected from status
+                    </span>
+                </div>
+                <div class="comm-stages-bar" id="commStagesBar">
+                    <button type="button" class="comm-stage-btn" data-stage="BOOKING_CREATED" onclick="selectCommStage('BOOKING_CREATED')">
+                        <i class="bi bi-calendar-plus"></i> 1. Created / Received
+                    </button>
+                    <button type="button" class="comm-stage-btn" data-stage="DRIVER_ALLOTTED" onclick="selectCommStage('DRIVER_ALLOTTED')">
+                        <i class="bi bi-person-check-fill"></i> 2. Driver Allotted & Accepted
+                    </button>
+                    <button type="button" class="comm-stage-btn" data-stage="DUTY_STARTED" onclick="selectCommStage('DUTY_STARTED')">
+                        <i class="bi bi-play-circle-fill"></i> 3. Duty Started
+                    </button>
+                    <button type="button" class="comm-stage-btn" data-stage="DUTY_CLOSED" onclick="selectCommStage('DUTY_CLOSED')">
+                        <i class="bi bi-receipt"></i> 4. Duty Closed & Invoiced
+                    </button>
+                    <button type="button" class="comm-stage-btn" data-stage="CANCELLED" onclick="selectCommStage('CANCELLED')">
+                        <i class="bi bi-x-circle-fill"></i> 5. Cancelled
+                    </button>
+                </div>
+
+                <!-- 2. Recipient Selector -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;">
+                        2. Select Message Recipient:
+                    </label>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="resetCommToDefaults()" style="font-size: 0.74rem; padding: 2px 8px;" title="Reset preview to standard template">
+                        <i class="bi bi-arrow-counterclockwise"></i> Re-interpolate Template
+                    </button>
+                </div>
+                <div class="comm-recipient-toggle">
+                    <button type="button" class="comm-recipient-btn active" id="btnRecipClient" onclick="selectCommRecipient('CLIENT')">
+                        <i class="bi bi-person-fill"></i> Client / Guest / Booker
+                    </button>
+                    <button type="button" class="comm-recipient-btn" id="btnRecipDriver" onclick="selectCommRecipient('DRIVER')">
+                        <i class="bi bi-truck"></i> Driver / Vendor
+                    </button>
+                </div>
+
+                <!-- 3. Target Contact Bar (Live Editable) -->
+                <div class="comm-target-bar">
+                    <div>
+                        <label style="font-size: 0.74rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Recipient Name</label>
+                        <input type="text" id="commTargetName" style="width: 100%; font-size: 0.82rem; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;" placeholder="Name of recipient" oninput="renderCommPreview()">
+                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <label style="font-size: 0.74rem; font-weight: 700; color: #475569; margin: 0;">Phone / WhatsApp</label>
+                            <span id="commPhoneValidationTag" style="font-size: 0.7rem; font-weight: 600; color: #16a34a;"></span>
+                        </div>
+                        <input type="text" id="commTargetPhone" style="width: 100%; font-size: 0.82rem; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;" placeholder="e.g. 9822012345 or +91..." oninput="onCommPhoneChanged()">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.74rem; font-weight: 700; color: #475569; display: block; margin-bottom: 4px;">Email Address</label>
+                        <input type="email" id="commTargetEmail" style="width: 100%; font-size: 0.82rem; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;" placeholder="recipient@company.com">
+                    </div>
+                </div>
+
+                <!-- 4. WhatsApp Message Box -->
+                <div class="comm-preview-card">
+                    <div class="comm-preview-header">
+                        <div class="comm-preview-title" style="color: #16a34a;">
+                            <i class="bi bi-whatsapp"></i> WhatsApp Message (Ready to Send)
+                        </div>
+                        <div class="comm-action-group">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="copyWhatsAppMessage()" title="Copy WhatsApp message to clipboard">
+                                <i class="bi bi-clipboard"></i> Copy Text
+                            </button>
+                            <button type="button" class="btn btn-sm btn-whatsapp" onclick="openWhatsAppChat()" title="Open wa.me link with this message">
+                                <i class="bi bi-whatsapp"></i> Open WhatsApp (wa.me)
+                            </button>
+                        </div>
+                    </div>
+                    <div class="comm-preview-body">
+                        <textarea id="commWhatsAppText" class="comm-textarea" rows="7" placeholder="WhatsApp message text..."></textarea>
+                    </div>
+                </div>
+
+                <!-- 5. Email Message Box -->
+                <div class="comm-preview-card">
+                    <div class="comm-preview-header">
+                        <div class="comm-preview-title" style="color: #2563eb;">
+                            <i class="bi bi-envelope-fill"></i> Email Notification (Subject & Body)
+                        </div>
+                        <div class="comm-action-group">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="copyEmailMessage()" title="Copy Email subject and body">
+                                <i class="bi bi-clipboard"></i> Copy Email
+                            </button>
+                            <button type="button" class="btn btn-sm btn-email-primary" onclick="openEmailDraft()" title="Open native email client with mailto: link">
+                                <i class="bi bi-envelope-arrow-up"></i> Open Mail Client (mailto:)
+                            </button>
+                        </div>
+                    </div>
+                    <div class="comm-preview-body">
+                        <div style="margin-bottom: 8px;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 3px;">Email Subject:</label>
+                            <input type="text" id="commEmailSubject" style="width: 100%; font-size: 0.84rem; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box;" placeholder="Email Subject Line">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 3px;">Email Body:</label>
+                            <textarea id="commEmailBody" class="comm-textarea" rows="8" placeholder="Email body content..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Available Variables Footer Legend -->
+                <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 10px 14px; font-size: 0.75rem; color: #64748b;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="color: #334155;"><i class="bi bi-info-circle"></i> Supported Live Template Variables:</strong>
+                        <span style="font-size: 0.7rem; color: #94a3b8;">Click any tag to copy</span>
+                    </div>
+                    <div class="variable-badge-list">
+                        <span class="variable-badge" onclick="insertVariable('{{ds_no}}')" title="Duty Slip or Booking No">{{ds_no}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{client_name}}')" title="Client Company Name">{{client_name}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{guest_name}}')" title="Guest / Passenger Name">{{guest_name}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{guest_phone}}')" title="Guest Mobile">{{guest_phone}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{travel_date}}')" title="Travel Date">{{travel_date}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{rep_time}}')" title="Reporting Time">{{rep_time}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{reporting_addr}}')" title="Pickup / Reporting Address">{{reporting_addr}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{drop_addr}}')" title="Drop / Destination Address">{{drop_addr}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{package}}')" title="Package Type">{{package}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{vehicle_type}}')" title="Vehicle Model / Category">{{vehicle_type}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{vehicle_no}}')" title="Assigned Vehicle Number">{{vehicle_no}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{driver_name}}')" title="Driver Name">{{driver_name}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{driver_phone}}')" title="Driver Mobile">{{driver_phone}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{total_kms}}')" title="Billed KMs">{{total_kms}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{total_hours}}')" title="Billed Hours">{{total_hours}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{invoice_total}}')" title="Invoice Grand Total">{{invoice_total}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{credit_days}}')" title="Credit Days">{{credit_days}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{cancel_reason}}')" title="Cancellation Reason">{{cancel_reason}}</span>
+                        <span class="variable-badge" onclick="insertVariable('{{broker_phone}}')" title="Helpline Phone">{{broker_phone}}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 10px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 0.78rem; color: #64748b;">
+                    <i class="bi bi-shield-check" style="color: #10b981;"></i> All communications are logged in Audit Logs & Activity Trail
+                </div>
+                <button type="button" class="btn btn-outline" onclick="closeModal('communicationModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -2950,6 +3191,9 @@
                 document.getElementById('profDsNext').value = brokerProfile.dutySlipNextSequence || 73426;
 
                 updateInvoiceLivePreview();
+                if (typeof loadSelectedTemplateInEditor === 'function') {
+                    loadSelectedTemplateInEditor();
+                }
             }
         }
 

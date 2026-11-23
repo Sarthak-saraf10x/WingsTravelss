@@ -307,10 +307,13 @@ function renderBookingsTable() {
                         <button class="btn btn-outline btn-icon" onclick="openPrintDutySlipModal('${bkIdentifier}')" title="Print Duty Slip">
                             <i class="bi bi-printer"></i>
                         </button>
+                        <button class="btn btn-outline btn-icon" onclick="openCommunicationModal('${bkIdentifier}')" title="Stage-Wise Email & WhatsApp Messages" style="color:#2563eb;">
+                            <i class="bi bi-chat-dots-fill"></i>
+                        </button>
                         ${cleanDrvPhone ? `
-                            <a href="${drvWaUrl}" target="_blank" class="btn btn-outline btn-icon" title="WhatsApp to Driver" style="color:#16a34a;">
+                            <button type="button" class="btn btn-outline btn-icon" onclick="openCommunicationModal('${bkIdentifier}', 'DRIVER')" title="WhatsApp & Email to Driver" style="color:#16a34a;">
                                 <i class="bi bi-whatsapp"></i>
-                            </a>
+                            </button>
                         ` : ''}
                     </div>
                 </td>
@@ -637,22 +640,30 @@ function sendGuestSms() {
 }
 
 function sendGuestWhatsApp() {
-    const phone = (document.getElementById('sheetGuestPhone')?.value || '').replace(/[^0-9]/g, '');
-    if (!phone) { showToast('No Guest mobile number entered', 'error'); return; }
-    const date = document.getElementById('sheetTravelDate')?.value || '';
-    const time = document.getElementById('sheetRepHours')?.value ? `${document.getElementById('sheetRepHours').value}:${document.getElementById('sheetRepMinutes').value || '00'}` : '';
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Greetings! Wings Travels cab is booked for ${date} at ${time}. Driver details will follow.`)}`, '_blank');
+    if (typeof openCommunicationModalFromSheet === 'function') {
+        openCommunicationModalFromSheet('CLIENT');
+    } else {
+        const phone = (document.getElementById('sheetGuestPhone')?.value || '').replace(/[^0-9]/g, '');
+        if (!phone) { showToast('No Guest mobile number entered', 'error'); return; }
+        const date = document.getElementById('sheetTravelDate')?.value || '';
+        const time = document.getElementById('sheetRepHours')?.value ? `${document.getElementById('sheetRepHours').value}:${document.getElementById('sheetRepMinutes').value || '00'}` : '';
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Greetings! Wings Travels cab is booked for ${date} at ${time}. Driver details will follow.`)}`, '_blank');
+    }
 }
 
 function sendDriverWhatsApp() {
-    const phone = (document.getElementById('sheetDriverPhone')?.value || '').replace(/[^0-9]/g, '');
-    if (!phone) { showToast('No Driver mobile number entered', 'error'); return; }
-    const guest = document.getElementById('sheetGuestName')?.value || 'Guest';
-    const gPhone = document.getElementById('sheetGuestPhone')?.value || '';
-    const addr = document.getElementById('sheetReportingAddr')?.value || '';
-    const date = document.getElementById('sheetTravelDate')?.value || '';
-    const time = document.getElementById('sheetRepHours')?.value ? `${document.getElementById('sheetRepHours').value}:${document.getElementById('sheetRepMinutes').value || '00'}` : '';
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Wings Travels Duty Slip: Passenger: ${guest} (${gPhone}). Pickup: ${addr}. Date: ${date} Time: ${time}. Please accept duty.`)}`, '_blank');
+    if (typeof openCommunicationModalFromSheet === 'function') {
+        openCommunicationModalFromSheet('DRIVER');
+    } else {
+        const phone = (document.getElementById('sheetDriverPhone')?.value || '').replace(/[^0-9]/g, '');
+        if (!phone) { showToast('No Driver mobile number entered', 'error'); return; }
+        const guest = document.getElementById('sheetGuestName')?.value || 'Guest';
+        const gPhone = document.getElementById('sheetGuestPhone')?.value || '';
+        const addr = document.getElementById('sheetReportingAddr')?.value || '';
+        const date = document.getElementById('sheetTravelDate')?.value || '';
+        const time = document.getElementById('sheetRepHours')?.value ? `${document.getElementById('sheetRepHours').value}:${document.getElementById('sheetRepMinutes').value || '00'}` : '';
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(`Wings Travels Duty Slip: Passenger: ${guest} (${gPhone}). Pickup: ${addr}. Date: ${date} Time: ${time}. Please accept duty.`)}`, '_blank');
+    }
 }
 
 // Save / Update Booking from Sheet
