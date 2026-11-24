@@ -120,6 +120,31 @@ function computeBookingStatusClient(b) {
     return 'STATUS_YES';
 }
 
+// Verification Rule: Can print duty slip only when status is Driver Accepted Duty or later (DR_DUTY_ACCPT, DR_DUTY_START, DR_DUTY_CLOSE)
+function canPrintDutySlipBooking(b) {
+    if (!b) return false;
+    if (b.status === 'STATUS_CANCEL' || b.cancelled) return false;
+    const st = computeBookingStatusClient(b);
+    if (st === 'DR_DUTY_ACCPT' || st === 'DR_DUTY_START' || st === 'DR_DUTY_CLOSE') {
+        return true;
+    }
+    if (b.driverAccepted === true || String(b.driverAccepted).toUpperCase() === 'YES' || b.dutyStarted || b.dutyClosed) {
+        return true;
+    }
+    return false;
+}
+
+// Verification Rule: Close Duty & Generate Invoice is only applicable when booking status is DR Duty Started (or viewing closed/invoiced)
+function canCloseDutyBooking(b) {
+    if (!b) return false;
+    if (b.status === 'STATUS_CANCEL' || b.cancelled) return false;
+    const st = computeBookingStatusClient(b);
+    if (st === 'DR_DUTY_START' || b.dutyStarted === true || st === 'DR_DUTY_CLOSE' || b.dutyClosed === true || b.isInvoiced === true) {
+        return true;
+    }
+    return false;
+}
+
 function getMissingChecklist(b) {
     const missing = [];
     const hasTiming = Boolean(
@@ -270,6 +295,49 @@ function renderBookingsTable() {
 
         const bkIdentifier = b._id || b.bookingNo || b.dutySlipNo || '';
 
+        const isStarted = Boolean(b.dutyStarted || st === 'DR_DUTY_START');
+        const isClosed = Boolean(b.dutyClosed || st === 'DR_DUTY_CLOSE');
+        const isAccepted = Boolean(b.driverAccepted === true || String(b.driverAccepted).toUpperCase() === 'YES' || st === 'DR_DUTY_ACCPT');
+
+        let startDutyTitle = '';
+        let startDutyStyle = '';
+        let startDutyIcon = 'bi bi-play-circle-fill';
+
+        if (isClosed) {
+            startDutyTitle = 'Duty already completed & closed';
+            startDutyStyle = 'color:#94a3b8; opacity:0.45; cursor:not-allowed;';
+            startDutyIcon = 'bi bi-check2-all';
+        } else if (isStarted) {
+            startDutyTitle = 'Duty is running (DR Duty Started)';
+            startDutyStyle = 'color:#0284c7; background:rgba(2,132,199,0.12); border-color:rgba(2,132,199,0.3);';
+            startDutyIcon = 'bi bi-play-circle-fill';
+        } else if (isAccepted) {
+            startDutyTitle = 'Start Duty Manually (Driver Communicated)';
+            startDutyStyle = 'color:#16a34a; background:rgba(22,163,74,0.12); border-color:rgba(22,163,74,0.35); font-weight:bold;';
+            startDutyIcon = 'bi bi-play-circle-fill';
+        } else {
+            startDutyTitle = `Start Duty (Requires driver acceptance — Current: ${(STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st})`;
+            startDutyStyle = 'color:#94a3b8; opacity:0.5;';
+            startDutyIcon = 'bi bi-play-circle';
+        }
+
+        const isCloseAllowed = canCloseDutyBooking(b);
+        const isPrintAllowed = canPrintDutySlipBooking(b);
+
+        const dutyCloseTitle = isCloseAllowed 
+            ? (b.dutyClosed || b.isInvoiced ? "View Closed Duty & Invoice" : "Duty Close & Generate Invoice")
+            : `Close Duty & Generate Invoice (Requires status: DR Duty Started — Current: ${(STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st})`;
+        const dutyCloseStyle = isCloseAllowed
+            ? "color:#0284c7;"
+            : "color:#94a3b8; opacity:0.45; cursor:pointer;";
+
+        const printDutyTitle = isPrintAllowed
+            ? "Print Duty Slip"
+            : `Print Duty Slip (Requires status: Driver Accepted Duty — Current: ${(STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st})`;
+        const printDutyStyle = isPrintAllowed
+            ? "color:#ea580c;"
+            : "color:#94a3b8; opacity:0.45; cursor:pointer;";
+
         return `
             <tr class="${rowClass}">
                 <td style="font-weight:700; white-space:nowrap;">
@@ -304,10 +372,13 @@ function renderBookingsTable() {
                         <button class="btn btn-outline btn-icon" onclick="openBookingSheet('${bkIdentifier}')" title="Open Full Booking & Plotting Sheet">
                             <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button class="btn btn-outline btn-icon" onclick="openDutyCloseModal('${bkIdentifier}')" title="Duty Close & Generate Invoice" style="color:#0284c7;">
+                        <button class="btn btn-outline btn-icon" onclick="startDutyManually('${bkIdentifier}')" title="${startDutyTitle}" style="${startDutyStyle}">
+                            <i class="${startDutyIcon}"></i>
+                        </button>
+                        <button class="btn btn-outline btn-icon" onclick="openDutyCloseModal('${bkIdentifier}')" title="${dutyCloseTitle}" style="${dutyCloseStyle}">
                             <i class="bi bi-receipt-cutoff"></i>
                         </button>
-                        <button class="btn btn-outline btn-icon" onclick="openPrintDutySlipModal('${bkIdentifier}')" title="Print Duty Slip">
+                        <button class="btn btn-outline btn-icon" onclick="openPrintDutySlipModal('${bkIdentifier}')" title="${printDutyTitle}" style="${printDutyStyle}">
                             <i class="bi bi-printer"></i>
                         </button>
                         <button class="btn btn-outline btn-icon" onclick="openCommunicationModal('${bkIdentifier}')" title="Stage-Wise Email & WhatsApp Messages" style="color:#2563eb;">
@@ -386,17 +457,17 @@ function openBookingSheet(bookingId) {
     openModal('bookingDetailModal');
 }
 
-function setPackageSelectValue(selectId, value) {
+function setSelectOptionValue(selectId, value, defaultVal = '') {
     const el = document.getElementById(selectId);
     if (!el) return;
-    if (!value) {
+    const targetVal = String(value || defaultVal || '').trim();
+    if (!targetVal) {
         el.value = '';
         return;
     }
-    const valTrim = String(value).trim();
     let found = false;
     for (let i = 0; i < el.options.length; i++) {
-        if (el.options[i].value.toLowerCase() === valTrim.toLowerCase() || el.options[i].text.toLowerCase() === valTrim.toLowerCase()) {
+        if (el.options[i].value.toLowerCase() === targetVal.toLowerCase() || el.options[i].text.toLowerCase() === targetVal.toLowerCase()) {
             el.selectedIndex = i;
             el.value = el.options[i].value;
             found = true;
@@ -405,12 +476,13 @@ function setPackageSelectValue(selectId, value) {
     }
     if (!found) {
         const opt = document.createElement('option');
-        opt.value = valTrim;
-        opt.textContent = valTrim;
+        opt.value = targetVal;
+        opt.textContent = targetVal;
         el.appendChild(opt);
-        el.value = valTrim;
+        el.value = targetVal;
     }
 }
+const setPackageSelectValue = setSelectOptionValue;
 
 function renderBookingSheetForm(b) {
     // Populate dropdowns first
@@ -426,6 +498,8 @@ function renderBookingSheetForm(b) {
     // Quick Driver Acceptance in Header
     const drAcptToggle = document.getElementById('sheetHeaderDrAcpt');
     if (drAcptToggle) drAcptToggle.checked = Boolean(b.driverAccepted);
+    const dutyStartedHeaderToggle = document.getElementById('sheetHeaderDutyStarted');
+    if (dutyStartedHeaderToggle) dutyStartedHeaderToggle.checked = Boolean(b.dutyStarted);
 
     // Form fields
     document.getElementById('sheetTravelDate').value = b.travelDate ? b.travelDate.split('T')[0] : '';
@@ -446,7 +520,7 @@ function renderBookingSheetForm(b) {
         const match = companiesList.find(c => c.companyName === b.clientName);
         if (match) document.getElementById('sheetClientSelect').value = match._id;
     }
-    document.getElementById('sheetLocation').value = b.location || 'Pune';
+    setSelectOptionValue('sheetLocation', b.location, 'Pune');
     document.getElementById('sheetBookedBy').value = b.bookedBy || '';
     document.getElementById('sheetBookedByPhone').value = b.bookedByPhone || '';
 
@@ -482,6 +556,8 @@ function renderBookingSheetForm(b) {
     document.getElementById('sheetVehicleNumber').value = b.vehicleNumber || '';
     document.getElementById('sheetVehicleSend').value = b.vehicleSend || '';
     document.getElementById('sheetDrAcptToggle').checked = Boolean(b.driverAccepted);
+    const dutyStartedFormToggle = document.getElementById('sheetDutyStartedToggle');
+    if (dutyStartedFormToggle) dutyStartedFormToggle.checked = Boolean(b.dutyStarted);
     document.getElementById('sheetPaymentMode').value = b.paymentMode || 'CREDIT';
 
     // Inline Audit Footer
@@ -517,6 +593,44 @@ function updateSheetLiveCompleteness() {
         } else {
             checklistBox.className = 'checklist-badge';
             checklistBox.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> Missing for Ready: <strong>${checklist.join(', ')}</strong>`;
+        }
+    }
+
+    // Update Header Print Duty Slip button status
+    const printBtn = document.getElementById('sheetBtnPrintDutySlip');
+    if (printBtn) {
+        const isPrintAllowed = canPrintDutySlipBooking(current);
+        if (isPrintAllowed) {
+            printBtn.style.opacity = '1';
+            printBtn.title = 'Print Duty Slip';
+        } else {
+            printBtn.style.opacity = '0.55';
+            printBtn.title = `Print Duty Slip (Requires status: Driver Accepted Duty — Current: ${(STATUS_CONFIG[computed] && STATUS_CONFIG[computed].label) || computed})`;
+        }
+    }
+
+    // Update Header Start Duty button status
+    const btnStart = document.getElementById('sheetBtnStartDuty');
+    const btnStartText = document.getElementById('sheetBtnStartDutyText');
+    if (btnStart) {
+        if (current.dutyClosed) {
+            btnStart.style.background = 'rgba(148, 163, 184, 0.15)';
+            btnStart.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+            btnStart.style.opacity = '0.6';
+            if (btnStartText) btnStartText.textContent = 'Duty Closed';
+            btnStart.title = 'Duty already completed and closed';
+        } else if (current.dutyStarted) {
+            btnStart.style.background = 'rgba(2, 132, 199, 0.25)';
+            btnStart.style.borderColor = 'rgba(2, 132, 199, 0.5)';
+            btnStart.style.opacity = '1';
+            if (btnStartText) btnStartText.textContent = 'Duty Running';
+            btnStart.title = 'Duty is started and currently live on the road';
+        } else {
+            btnStart.style.background = 'rgba(22, 163, 74, 0.2)';
+            btnStart.style.borderColor = 'rgba(22, 163, 74, 0.5)';
+            btnStart.style.opacity = '1';
+            if (btnStartText) btnStartText.textContent = 'Start Duty';
+            btnStart.title = 'Start Duty Manually (Driver Communicated)';
         }
     }
 }
@@ -579,6 +693,7 @@ function collectSheetFormData() {
         vehicleNumber: document.getElementById('sheetVehicleNumber')?.value?.trim()?.toUpperCase() || '',
         vehicleSend: document.getElementById('sheetVehicleSend')?.value?.trim() || '',
         driverAccepted: document.getElementById('sheetDrAcptToggle')?.checked || false,
+        dutyStarted: document.getElementById('sheetDutyStartedToggle')?.checked || false,
         paymentMode: document.getElementById('sheetPaymentMode')?.value || 'CREDIT'
     };
 }
@@ -782,12 +897,133 @@ async function submitBookingCancellation() {
 }
 
 // =========================================================================
+// 3.5. MANUAL DUTY START (DISPATCHER & DRIVER COMMUNICATION)
+// =========================================================================
+
+async function startDutyManually(bookingId) {
+    const b = findBookingInList(bookingId);
+    if (!b) return;
+
+    if (b.status === 'STATUS_CANCEL' || b.cancelled) {
+        showToast('Cannot start duty on a cancelled booking', 'error');
+        return;
+    }
+
+    if (b.dutyClosed || b.status === 'DR_DUTY_CLOSE') {
+        showToast('Duty is already completed and closed', 'info');
+        return;
+    }
+
+    if (b.dutyStarted || b.status === 'DR_DUTY_START') {
+        showToast(`Duty #${b.dutySlipNo || b.bookingNo} is already started and in progress`, 'info');
+        return;
+    }
+
+    const hasPlotting = Boolean(b.vehicleNumber && b.driverName);
+    if (!hasPlotting) {
+        showToast('Please assign vehicle and driver before starting duty', 'warning');
+        openBookingSheet(bookingId);
+        return;
+    }
+
+    const dsNo = b.dutySlipNo || b.bookingNo;
+    const driverMsg = b.driverName ? `with chauffeur ${b.driverName}` : '';
+    const confirmStart = confirm(`Start Duty for Booking #${dsNo} ${driverMsg}?\n\nThis will mark the duty as "DR DUTY START" so the trip is officially live and can later be closed with returned readings.`);
+    if (!confirmStart) return;
+
+    let res = await fetchAuth(`${API_BASE}/aggregator/bookings/${b._id || b.bookingNo}/start-duty`, {
+        method: 'POST',
+        body: JSON.stringify({ dutyStarted: true, driverAccepted: true })
+    });
+
+    if (!res || !res.success) {
+        // Fallback to PUT
+        res = await fetchAuth(`${API_BASE}/aggregator/bookings/${b._id || b.bookingNo}`, {
+            method: 'PUT',
+            body: JSON.stringify({ dutyStarted: true, driverAccepted: true, resetToAuto: true })
+        });
+    }
+
+    if (res && res.success) {
+        showToast(res.message || `Duty #${dsNo} started successfully!`);
+        b.dutyStarted = true;
+        b.driverAccepted = true;
+        b.status = 'DR_DUTY_START';
+        await loadBookings();
+    } else {
+        showToast(res ? res.message : 'Error starting duty', 'error');
+    }
+}
+
+async function startDutyFromSheet() {
+    if (!currentActiveBooking) return;
+
+    if (currentActiveBooking.dutyClosed) {
+        showToast('Duty is already closed', 'info');
+        return;
+    }
+
+    const dutyCheck = document.getElementById('sheetDutyStartedToggle');
+    const headerDutyCheck = document.getElementById('sheetHeaderDutyStarted');
+    const drAcptCheck = document.getElementById('sheetDrAcptToggle');
+    const headerDrAcpt = document.getElementById('sheetHeaderDrAcpt');
+
+    if (dutyCheck?.checked) {
+        showToast('Duty is already marked as started', 'info');
+        return;
+    }
+
+    if (dutyCheck) dutyCheck.checked = true;
+    if (headerDutyCheck) headerDutyCheck.checked = true;
+    if (drAcptCheck) drAcptCheck.checked = true;
+    if (headerDrAcpt) headerDrAcpt.checked = true;
+
+    updateSheetLiveCompleteness();
+
+    const realId = currentActiveBooking._id || currentActiveBooking.bookingNo;
+    if (realId && realId !== 'AUTO') {
+        let res = await fetchAuth(`${API_BASE}/aggregator/bookings/${realId}/start-duty`, {
+            method: 'POST',
+            body: JSON.stringify({ dutyStarted: true, driverAccepted: true })
+        });
+        if (!res || !res.success) {
+            res = await fetchAuth(`${API_BASE}/aggregator/bookings/${realId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ dutyStarted: true, driverAccepted: true, resetToAuto: true })
+            });
+        }
+        if (res && res.success) {
+            showToast(`Duty #${currentActiveBooking.dutySlipNo || currentActiveBooking.bookingNo} started successfully!`);
+            currentActiveBooking.dutyStarted = true;
+            currentActiveBooking.driverAccepted = true;
+            currentActiveBooking.status = 'DR_DUTY_START';
+            loadBookings();
+            return;
+        }
+    }
+
+    showToast('Duty marked as Started. Click "Save Booking Sheet" to persist changes.', 'success');
+}
+
+// =========================================================================
 // 4. DUTY CLOSE & SAME-NUMBER INVOICE GENERATION
 // =========================================================================
 
 async function openDutyCloseModal(bookingId) {
     const b = findBookingInList(bookingId);
     if (!b) return;
+
+    if (!canCloseDutyBooking(b)) {
+        const st = computeBookingStatusClient(b);
+        const stLabel = (STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st;
+        const msg = `Close Duty & Generate Invoice is only applicable when booking status is "DR Duty Started". Current status: ${stLabel}.`;
+        if (typeof showToast === 'function') {
+            showToast(msg, 'warning');
+        } else {
+            alert(msg);
+        }
+        return;
+    }
 
     currentDutyCloseBooking = b;
     const dsNo = b.dutySlipNo || b.bookingNo;
@@ -905,6 +1141,18 @@ async function handleDutySlipFileSelect(input) {
 // Submit Close Duty & Auto-Generate Invoice
 async function submitCloseDutyAndGenerateInvoice() {
     if (!currentDutyCloseBooking) return;
+
+    const st = computeBookingStatusClient(currentDutyCloseBooking);
+    if (!currentDutyCloseBooking.dutyStarted && st !== 'DR_DUTY_START' && !currentDutyCloseBooking.dutyClosed && st !== 'DR_DUTY_CLOSE') {
+        const stLabel = (STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st;
+        const msg = `Cannot close duty: Booking status must be "DR Duty Started". Current status: ${stLabel}.`;
+        if (typeof showToast === 'function') {
+            showToast(msg, 'error');
+        } else {
+            alert(msg);
+        }
+        return;
+    }
 
     const payload = {
         garageOutKm: Number(document.getElementById('dcGarageOutKm').value || 0),
@@ -1579,6 +1827,25 @@ function openPrintDutySlipModal(bookingId) {
         return;
     }
 
+    // Merge unsaved live form fields if bookingDetailModal is active
+    const isModalOpen = document.getElementById('bookingDetailModal')?.classList.contains('active');
+    if (isModalOpen && typeof collectSheetFormData === 'function') {
+        const formData = collectSheetFormData();
+        b = Object.assign({}, b, formData);
+    }
+
+    if (!canPrintDutySlipBooking(b)) {
+        const st = computeBookingStatusClient(b);
+        const stLabel = (STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st;
+        const msg = `Print Duty Slip is only allowed after "Driver Accepted Duty". Current status: ${stLabel}.`;
+        if (typeof showToast === 'function') {
+            showToast(msg, 'warning');
+        } else {
+            alert(msg);
+        }
+        return;
+    }
+
     activePrintBookingRecord = b;
     const broker = (typeof brokerProfile !== 'undefined' ? brokerProfile : null) || {};
     const html = buildDutySlipHtml(b, broker);
@@ -1603,6 +1870,12 @@ function openPrintDutySlipModal(bookingId) {
 
 function printDutySlipNow() {
     let b = activePrintBookingRecord;
+    if (b && !canPrintDutySlipBooking(b)) {
+        const st = computeBookingStatusClient(b);
+        const stLabel = (STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st;
+        if (typeof showToast === 'function') showToast(`Print Duty Slip is only allowed after "Driver Accepted Duty". Current status: ${stLabel}.`, 'warning');
+        return;
+    }
     if (!b) {
         const printArea = document.getElementById('dutySlipPrintArea');
         if (!printArea || !printArea.innerHTML.trim()) {
@@ -1689,6 +1962,12 @@ function printDutySlipNow() {
 function openDutySlipInNewWindow() {
     if (!activePrintBookingRecord) return;
     const b = activePrintBookingRecord;
+    if (!canPrintDutySlipBooking(b)) {
+        const st = computeBookingStatusClient(b);
+        const stLabel = (STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st;
+        if (typeof showToast === 'function') showToast(`Open Duty Slip is only allowed after "Driver Accepted Duty". Current status: ${stLabel}.`, 'warning');
+        return;
+    }
     const broker = (typeof brokerProfile !== 'undefined' ? brokerProfile : null) || {};
     const slipHtml = buildDutySlipHtml(b, broker);
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
@@ -2168,5 +2447,12 @@ if (typeof window !== 'undefined') {
     window.openPrintDutySlipModal = openPrintDutySlipModal;
     window.printDutySlipNow = printDutySlipNow;
     window.openDutySlipInNewWindow = openDutySlipInNewWindow;
+    window.canPrintDutySlipBooking = canPrintDutySlipBooking;
+    window.canCloseDutyBooking = canCloseDutyBooking;
+    window.openDutyCloseModal = openDutyCloseModal;
+    window.submitCloseDutyAndGenerateInvoice = submitCloseDutyAndGenerateInvoice;
+    window.computeBookingStatusClient = computeBookingStatusClient;
+    window.startDutyManually = startDutyManually;
+    window.startDutyFromSheet = startDutyFromSheet;
 }
 

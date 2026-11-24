@@ -1102,6 +1102,7 @@
                                 <select id="bkFilterLocation" onchange="loadBookings()" style="height: 38px; font-size: 0.84rem;">
                                     <option value="ALL" selected>All Locations</option>
                                     <option value="Pune">Pune</option>
+                                    <option value="Pan India">Pan India</option>
                                     <option value="Mumbai">Mumbai</option>
                                     <option value="Goa">Goa</option>
                                     <option value="Nagpur">Nagpur</option>
@@ -2324,12 +2325,20 @@
                         <label style="font-size: 0.78rem; font-weight: 600; color: #cbd5e1; margin: 0; cursor: pointer;" for="sheetHeaderDrAcpt">Dr. Accpt:</label>
                         <input type="checkbox" id="sheetHeaderDrAcpt" onchange="document.getElementById('sheetDrAcptToggle').checked = this.checked; updateSheetLiveCompleteness();" style="cursor: pointer;">
                     </div>
+                    <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(30, 64, 175, 0.25); border: 1px solid rgba(96, 165, 250, 0.4); padding: 4px 10px; border-radius: 6px;">
+                        <label style="font-size: 0.78rem; font-weight: 600; color: #93c5fd; margin: 0; cursor: pointer;" for="sheetHeaderDutyStarted">Duty Started:</label>
+                        <input type="checkbox" id="sheetHeaderDutyStarted" onchange="document.getElementById('sheetDutyStartedToggle').checked = this.checked; updateSheetLiveCompleteness();" style="cursor: pointer;">
+                    </div>
                     <div id="sheetHeaderStatusBadge">
                         <!-- Populated dynamically -->
                     </div>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm" id="sheetBtnStartDuty" onclick="startDutyFromSheet()" style="background: rgba(22, 163, 74, 0.2); color: #86efac !important; border: 1px solid rgba(22, 163, 74, 0.5); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem;" title="Start Duty Manually (Driver Communicated)" onmouseover="this.style.background='rgba(22,163,74,0.35)'" onmouseout="this.style.background='rgba(22,163,74,0.2)'">
+                        <i class="bi bi-play-circle-fill" style="color: #4ade80; font-size: 0.95rem;"></i>
+                        <span id="sheetBtnStartDutyText" style="color: #86efac;">Start Duty</span>
+                    </button>
                     <button type="button" class="btn btn-sm" onclick="openCommunicationModalFromSheet()" style="background: rgba(96, 165, 250, 0.15); color: #93c5fd !important; border: 1px solid rgba(96, 165, 250, 0.4); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem;" title="Stage-wise Email & WhatsApp Messages" onmouseover="this.style.background='rgba(96,165,250,0.28)'" onmouseout="this.style.background='rgba(96,165,250,0.15)'">
                         <i class="bi bi-chat-dots-fill" style="color: #60a5fa; font-size: 0.95rem;"></i>
                         <span style="color: #93c5fd;">Messages</span>
@@ -2338,7 +2347,7 @@
                         <i class="bi bi-copy" style="color: #38bdf8; font-size: 0.95rem;"></i>
                         <span style="color: #ffffff;">Copy Booking</span>
                     </button>
-                    <button type="button" class="btn btn-sm" onclick="openPrintDutySlipModal(currentActiveBooking ? (currentActiveBooking._id || currentActiveBooking.bookingNo || currentActiveBooking) : null);" style="background: rgba(234, 88, 12, 0.2); color: #ffffff !important; border: 1px solid rgba(234, 88, 12, 0.5); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem;" title="Print Duty Slip" onmouseover="this.style.background='rgba(234,88,12,0.35)'" onmouseout="this.style.background='rgba(234,88,12,0.2)'">
+                    <button type="button" class="btn btn-sm" id="sheetBtnPrintDutySlip" onclick="openPrintDutySlipModal(currentActiveBooking ? (currentActiveBooking._id || currentActiveBooking.bookingNo || currentActiveBooking) : null);" style="background: rgba(234, 88, 12, 0.2); color: #ffffff !important; border: 1px solid rgba(234, 88, 12, 0.5); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; cursor: pointer; border-radius: 6px; font-size: 0.82rem;" title="Print Duty Slip" onmouseover="this.style.background='rgba(234,88,12,0.35)'" onmouseout="this.style.background='rgba(234,88,12,0.2)'">
                         <i class="bi bi-printer-fill" style="color: #fb923c; font-size: 0.95rem;"></i>
                         <span style="color: #ffffff;">Print Duty Slip</span>
                     </button>
@@ -2426,7 +2435,10 @@
                             </div>
                             <div class="form-group">
                                 <label>Location / City <span class="required">*</span></label>
-                                <input type="text" id="sheetLocation" value="Pune" required>
+                                <select id="sheetLocation" required>
+                                    <option value="Pune" selected>Pune</option>
+                                    <option value="Pan India">Pan India</option>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label>Booked By (Coordinator / Secretary)</label>
@@ -2608,6 +2620,13 @@
                                 <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
                                     <input type="checkbox" id="sheetDrAcptToggle" onchange="document.getElementById('sheetHeaderDrAcpt').checked = this.checked; updateSheetLiveCompleteness();" style="width: 18px; height: 18px; cursor: pointer;">
                                     <span style="font-weight: 600; font-size: 0.85rem; color: #166534;">Driver Accepted Duty</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Duty Status</label>
+                                <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+                                    <input type="checkbox" id="sheetDutyStartedToggle" onchange="document.getElementById('sheetHeaderDutyStarted').checked = this.checked; updateSheetLiveCompleteness();" style="width: 18px; height: 18px; cursor: pointer;">
+                                    <span style="font-weight: 600; font-size: 0.85rem; color: #1e40af;">Duty Started (Driver on Trip)</span>
                                 </div>
                             </div>
                             <div class="form-group">
