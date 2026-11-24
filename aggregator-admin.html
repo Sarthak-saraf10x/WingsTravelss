@@ -978,6 +978,13 @@
                         <span class="badge-counter" id="countBadgeBookings">0</span>
                     </a>
                 </li>
+                <li id="sidebarItemBilling">
+                    <a class="sidebar-link" data-tab="billing">
+                        <i class="bi bi-receipt"></i>
+                        <span>Billing & Invoices</span>
+                        <span class="badge-counter" id="countBadgeBilling">0</span>
+                    </a>
+                </li>
 
                 <div class="menu-heading" id="headingMasterData">MASTER DATA MODULES</div>
                 <li id="sidebarItemCompanies">
@@ -1142,13 +1149,140 @@
                                     <th>St</th>
                                     <th style="text-align: center;">Dr.Acpt</th>
                                     <th>Loc</th>
-                                    <th style="text-align: right; min-width: 130px;">Actions</th>
+                                    <th style="text-align: right; min-width: 145px;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="bookingsTableBody">
                                 <tr>
                                     <td colspan="13" style="text-align: center; padding: 45px; color: #94a3b8;">
                                         Loading booking chart...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =============================================================== -->
+            <!-- DEDICATED BILLING & INVOICING SECTION                           -->
+            <!-- =============================================================== -->
+            <section id="tab-billing" class="tab-panel">
+                <!-- Billing Overview Stats Row -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class="bi bi-receipt"></i></div>
+                        <div class="stat-info">
+                            <h4>Ended in Billing</h4>
+                            <div class="num" id="billingStatTotal">0</div>
+                            <div class="change">Closed duty rides</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon amber"><i class="bi bi-file-earmark-text"></i></div>
+                        <div class="stat-info">
+                            <h4>Ready to Bill</h4>
+                            <div class="num" id="billingStatPending">0</div>
+                            <div class="change">Readings to enter</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="bi bi-receipt-cutoff"></i></div>
+                        <div class="stat-info">
+                            <h4>Invoiced</h4>
+                            <div class="num" id="billingStatInvoiced">0</div>
+                            <div class="change">Awaiting payment</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="bi bi-check2-circle"></i></div>
+                        <div class="stat-info">
+                            <h4>Paid & Closed</h4>
+                            <div class="num" id="billingStatPaid">0</div>
+                            <div class="change">Payment completed</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="bi bi-currency-rupee"></i></div>
+                        <div class="stat-info">
+                            <h4>Outstanding Revenue</h4>
+                            <div class="num" id="billingStatOutstanding">₹0</div>
+                            <div class="change">Unpaid invoiced sum</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billing Controls & Filters Card -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-body" style="padding: 16px 20px;">
+                        <!-- Stage Filters -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+                            <div class="billing-stage-tabs" id="billingStageFilterTabs">
+                                <button type="button" class="billing-stage-btn active" data-stage="ALL" onclick="selectBillingStageFilter('ALL')">
+                                    <i class="bi bi-grid-fill"></i> All Records (<span id="stageCountAll">0</span>)
+                                </button>
+                                <button type="button" class="billing-stage-btn" data-stage="PENDING" onclick="selectBillingStageFilter('PENDING')">
+                                    <i class="bi bi-clock-history"></i> Pending Slip / Ready to Bill (<span id="stageCountPending">0</span>)
+                                </button>
+                                <button type="button" class="billing-stage-btn" data-stage="INVOICED" onclick="selectBillingStageFilter('INVOICED')">
+                                    <i class="bi bi-receipt"></i> Invoiced (<span id="stageCountInvoiced">0</span>)
+                                </button>
+                                <button type="button" class="billing-stage-btn" data-stage="PAID" onclick="selectBillingStageFilter('PAID')">
+                                    <i class="bi bi-check2-all"></i> Paid (<span id="stageCountPaid">0</span>)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filter Inputs Grid -->
+                        <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+                            <div class="form-group" style="margin: 0; min-width: 140px;">
+                                <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">From Date</label>
+                                <input type="date" id="billingFilterFromDate" onchange="renderBillingTable()" style="height: 38px; font-size: 0.84rem;">
+                            </div>
+                            <div class="form-group" style="margin: 0; min-width: 140px;">
+                                <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">To Date</label>
+                                <input type="date" id="billingFilterToDate" onchange="renderBillingTable()" style="height: 38px; font-size: 0.84rem;">
+                            </div>
+                            <div class="form-group" style="margin: 0; min-width: 180px;">
+                                <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Client Company</label>
+                                <select id="billingFilterClient" onchange="renderBillingTable()" style="height: 38px; font-size: 0.84rem;">
+                                    <option value="ALL" selected>All Companies</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin: 0; flex: 1; min-width: 200px;">
+                                <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Search Billing Queue</label>
+                                <input type="text" id="billingFilterSearch" placeholder="Search by Bk/Slip #, Guest, Driver, Car No..." oninput="renderBillingTable()" style="height: 38px; font-size: 0.84rem;">
+                            </div>
+                            <button class="btn btn-outline" onclick="resetBillingFilters()" style="height: 38px;" title="Reset filters">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Billing Table -->
+                <div class="card">
+                    <div class="table-responsive">
+                        <table id="billingTable">
+                            <thead>
+                                <tr>
+                                    <th style="min-width: 105px;">Slip / Bk No</th>
+                                    <th>Duty Date</th>
+                                    <th>Client Company</th>
+                                    <th>Guest / Route</th>
+                                    <th>Car & Chauffeur</th>
+                                    <th>Trip Readings</th>
+                                    <th>Duty Slip</th>
+                                    <th>Billing Stage</th>
+                                    <th>Invoice & Total</th>
+                                    <th>Payment Status</th>
+                                    <th style="text-align: right; min-width: 140px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="billingTableBody">
+                                <tr>
+                                    <td colspan="11" style="text-align: center; padding: 45px; color: #94a3b8;">
+                                        Loading billing queue...
                                     </td>
                                 </tr>
                             </tbody>
@@ -2660,47 +2794,48 @@
         </div>
     </div>
 
-    <!-- 11. DUTY CLOSE & SAME-NUMBER INVOICE GENERATION MODAL -->
+    <!-- 11. DUTY CLOSE MODAL (DISPATCH PLANNING) -->
     <div class="modal-overlay" id="dutyCloseModal">
-        <div class="modal-container extra-large" style="max-height: 94vh;">
+        <div class="modal-container" style="max-width: 680px; max-height: 94vh;">
             <div class="modal-header">
-                <h3 id="dcModalTitle"><i class="bi bi-receipt-cutoff"></i> Close Duty & Generate Invoice</h3>
+                <h3 id="dcModalTitle"><i class="bi bi-stop-circle-fill" style="color: #ea580c;"></i> Close Duty & Complete Booking</h3>
                 <button class="modal-close-btn" onclick="closeModal('dutyCloseModal')">&times;</button>
             </div>
             <div class="modal-body" style="padding: 20px; overflow-y: auto;">
+                <div style="background: rgba(234, 88, 12, 0.08); border: 1px solid rgba(234, 88, 12, 0.25); border-radius: 6px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.84rem; color: #9a3412; display: flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-info-circle-fill" style="font-size: 1.1rem; flex-shrink: 0;"></i>
+                    <span><strong>Dispatcher Duty Closure:</strong> Record driver's returned duty slip & trip readings. Once closed, booking automatically transitions to <strong>Ended &rarr; In Billing</strong> where Tax Invoice is generated and tracked.</span>
+                </div>
+
                 <!-- Summary Card -->
-                <div style="background: #0f172a; color: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+                <div style="background: #0f172a; color: #f8fafc; border-radius: 8px; padding: 14px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
                     <div>
                         <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Duty Slip No</div>
                         <div style="font-size: 1.15rem; font-weight: 700; font-family: monospace; color: #f8fafc;" id="dcBookingNoDisplay">-</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 0.72rem; color: #fdba74; text-transform: uppercase;">Tax Invoice No</div>
-                        <div style="font-size: 1.15rem; font-weight: 700; font-family: monospace; color: #fb923c;" id="dcTargetInvoiceNoDisplay">-</div>
-                        <span style="font-size: 0.68rem; color: #cbd5e1;">Exact same sequence #</span>
+                        <span id="dcTargetInvoiceNoDisplay" style="display:none;">-</span>
                     </div>
                     <div>
                         <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Client</div>
-                        <div style="font-size: 0.92rem; font-weight: 600;" id="dcClientDisplay">-</div>
+                        <div style="font-size: 0.9rem; font-weight: 600;" id="dcClientDisplay">-</div>
                     </div>
                     <div>
                         <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Guest</div>
-                        <div style="font-size: 0.92rem; font-weight: 600;" id="dcGuestDisplay">-</div>
+                        <div style="font-size: 0.9rem; font-weight: 600;" id="dcGuestDisplay">-</div>
                     </div>
                     <div>
                         <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Vehicle</div>
-                        <div style="font-size: 0.92rem; font-weight: 600;" id="dcVehicleDisplay">-</div>
+                        <div style="font-size: 0.9rem; font-weight: 600;" id="dcVehicleDisplay">-</div>
                     </div>
                     <div>
                         <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Driver</div>
-                        <div style="font-size: 0.92rem; font-weight: 600;" id="dcDriverDisplay">-</div>
+                        <div style="font-size: 0.9rem; font-weight: 600;" id="dcDriverDisplay">-</div>
                     </div>
                 </div>
 
                 <!-- Duty Readings Grid -->
                 <div class="card" style="margin-bottom: 16px; padding: 14px;">
                     <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; color: #0f172a;">
-                        <i class="bi bi-speedometer2"></i> Odometer & Time Readings
+                        <i class="bi bi-speedometer2"></i> Returned Odometer & Time Readings
                     </h4>
                     <div class="readings-grid">
                         <div class="reading-card">
@@ -2797,17 +2932,289 @@
                     </div>
                 </div>
 
-                <!-- Generated Tax Invoice Section -->
-                <div id="generatedInvoiceContainer" style="display: none;">
-                    <!-- Rendered dynamically by renderGeneratedInvoiceSection() -->
-                </div>
+                <!-- Hidden / Compatibility container for generated invoice -->
+                <div id="generatedInvoiceContainer" style="display: none;"></div>
             </div>
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closeModal('dutyCloseModal')">Close</button>
                 <button type="button" class="btn btn-primary" id="btnSubmitCloseDuty" onclick="submitCloseDutyAndGenerateInvoice()">
-                    <i class="bi bi-receipt"></i> Close Duty & Generate Tax Invoice
+                    <i class="bi bi-check-circle-fill"></i> Close Duty & Send to Billing
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 11B. DEDICATED BILLING SHEET & SAME-NUMBER INVOICE MODAL -->
+    <div class="modal-overlay" id="billingSheetModal">
+        <div class="modal-container extra-large" style="max-height: 94vh;">
+            <div class="modal-header" style="background: #0f172a; color: #ffffff; padding: 14px 20px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="bi bi-receipt" style="color: #ea580c; font-size: 1.35rem;"></i>
+                        <span style="font-weight: 800; font-size: 1.15rem; font-family: var(--font-outfit);">Billing Sheet & Same-Number Tax Invoice</span>
+                    </div>
+                    <span id="bsDsNoBadge" style="font-family: monospace; background: rgba(255,255,255,0.15); padding: 3px 9px; border-radius: 4px; font-weight: 700; font-size: 0.95rem;">#--</span>
+                    <span id="bsStageBadge"></span>
+                </div>
+                <button class="modal-close-btn" onclick="closeModal('billingSheetModal')" style="color: #94a3b8; font-size: 1.6rem;">&times;</button>
+            </div>
+
+            <div class="modal-body" style="padding: 20px; overflow-y: auto;">
+                <!-- Summary Card -->
+                <div style="background: #0f172a; color: #f8fafc; border-radius: 8px; padding: 14px 18px; margin-bottom: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; border-left: 4px solid #ea580c;">
+                    <div>
+                        <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Duty Slip No</div>
+                        <div style="font-size: 1.15rem; font-weight: 800; font-family: monospace; color: #f8fafc;" id="bsBookingNoDisplay">-</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.72rem; color: #fdba74; text-transform: uppercase;">Tax Invoice No</div>
+                        <div style="font-size: 1.15rem; font-weight: 800; font-family: monospace; color: #fb923c;" id="bsInvoiceNoDisplay">-</div>
+                        <span style="font-size: 0.68rem; color: #cbd5e1;"><i class="bi bi-link-45deg"></i> Exact same sequence #</span>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Corporate Client</div>
+                        <div style="font-size: 0.92rem; font-weight: 600;" id="bsClientDisplay">-</div>
+                        <span style="font-size: 0.72rem; color: #94a3b8;" id="bsClientGstinDisplay">GSTIN: -</span>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Guest / Route</div>
+                        <div style="font-size: 0.92rem; font-weight: 600;" id="bsGuestDisplay">-</div>
+                        <span style="font-size: 0.72rem; color: #94a3b8;" id="bsRouteDisplay">-</span>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Vehicle & Chauffeur</div>
+                        <div style="font-size: 0.92rem; font-weight: 600;" id="bsVehicleDisplay">-</div>
+                        <span style="font-size: 0.72rem; color: #94a3b8;" id="bsDriverDisplay">-</span>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Duty Date</div>
+                        <div style="font-size: 0.92rem; font-weight: 600;" id="bsDateDisplay">-</div>
+                    </div>
+                </div>
+
+                <!-- Workflow Step Tabs -->
+                <div class="bs-workflow-tabs">
+                    <button type="button" class="bs-tab-btn active" id="bsTabBtn1" onclick="switchBillingSheetTab(1)">
+                        <i class="bi bi-file-earmark-ruled"></i> 1. Duty Slip & Readings
+                    </button>
+                    <button type="button" class="bs-tab-btn" id="bsTabBtn2" onclick="switchBillingSheetTab(2)">
+                        <i class="bi bi-receipt"></i> 2. Same-Number Tax Invoice
+                    </button>
+                    <button type="button" class="bs-tab-btn" id="bsTabBtn3" onclick="switchBillingSheetTab(3)">
+                        <i class="bi bi-printer"></i> 3. Print, Dispatch & Payment
+                    </button>
+                </div>
+
+                <!-- STEP 1 PANEL: Duty Slip File & Readings -->
+                <div id="bsStepPanel1">
+                    <!-- Paper Duty Slip Upload Card -->
+                    <div class="card" style="margin-bottom: 16px; padding: 14px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; color: #0f172a;">
+                            <i class="bi bi-cloud-arrow-up"></i> Driver's Filled Paper Duty Slip
+                        </h4>
+                        <div class="duty-slip-dropzone" onclick="document.getElementById('bsDutySlipFileInput').click()">
+                            <i class="bi bi-file-earmark-arrow-up" style="font-size: 2rem; color: var(--primary);"></i>
+                            <div style="font-size: 0.88rem; font-weight: 600; margin-top: 6px;">Click or tap to upload driver's signed duty slip</div>
+                            <span style="font-size: 0.75rem; color: #64748b;">Supports JPG, PNG, WebP or PDF (up to 15MB)</span>
+                            <input type="file" id="bsDutySlipFileInput" accept="image/*,application/pdf" style="display:none;" onchange="handleBillingSlipFileSelect(this)">
+                        </div>
+                        <div id="bsUploadedFileStatus" style="margin-top: 10px;"></div>
+                    </div>
+
+                    <!-- Readings Grid -->
+                    <div class="card" style="margin-bottom: 16px; padding: 14px;">
+                        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; color: #0f172a;">
+                            <i class="bi bi-speedometer2"></i> Odometer & Time Readings
+                        </h4>
+                        <div class="readings-grid">
+                            <div class="reading-card">
+                                <div class="label">Garage Out KM</div>
+                                <input type="number" id="bsGarageOutKm" placeholder="0">
+                                <div class="label" style="margin-top: 6px;">Out Time</div>
+                                <input type="text" id="bsGarageOutTime" placeholder="06:00">
+                            </div>
+                            <div class="reading-card" style="border-color: #93c5fd; background: #eff6ff;">
+                                <div class="label" style="color: #1d4ed8;">Reporting KM</div>
+                                <input type="number" id="bsReportingKm" placeholder="0" oninput="autoCalcBillingReadings()">
+                                <div class="label" style="margin-top: 6px; color: #1d4ed8;">Reporting Time</div>
+                                <input type="text" id="bsReportingTime" placeholder="07:00" oninput="autoCalcBillingReadings()">
+                            </div>
+                            <div class="reading-card" style="border-color: #86efac; background: #f0fdf4;">
+                                <div class="label" style="color: #15803d;">Releasing KM</div>
+                                <input type="number" id="bsReleasingKm" placeholder="0" oninput="autoCalcBillingReadings()">
+                                <div class="label" style="margin-top: 6px; color: #15803d;">Releasing Time</div>
+                                <input type="text" id="bsReleasingTime" placeholder="18:30" oninput="autoCalcBillingReadings()">
+                            </div>
+                            <div class="reading-card">
+                                <div class="label">Garage In KM</div>
+                                <input type="number" id="bsGarageInKm" placeholder="0">
+                                <div class="label" style="margin-top: 6px;">In Time</div>
+                                <input type="text" id="bsGarageInTime" placeholder="19:30">
+                            </div>
+                        </div>
+
+                        <!-- Computed Total Units & Allowances -->
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 10px; margin-top: 14px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.74rem;">Total KMs <span class="required">*</span></label>
+                                <input type="number" id="bsTotalKms" value="80" required oninput="triggerBillingInvoicePreview()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.74rem;">Total Hours <span class="required">*</span></label>
+                                <input type="number" step="0.5" id="bsTotalHours" value="8.0" required oninput="triggerBillingInvoicePreview()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.74rem;">Days</label>
+                                <input type="number" id="bsTotalDays" value="1" oninput="triggerBillingInvoicePreview()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.74rem;">Nights</label>
+                                <input type="number" id="bsTotalNights" value="0" oninput="triggerBillingInvoicePreview()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.74rem;">Driver Allow (₹)</label>
+                                <input type="number" id="bsDriverAllowance" value="0" oninput="triggerBillingInvoicePreview()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.74rem;">Late Night (₹)</label>
+                                <input type="number" id="bsLateNight" value="0" oninput="triggerBillingInvoicePreview()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.74rem;">Border Permit (₹)</label>
+                                <input type="number" id="bsPermit" value="0" oninput="triggerBillingInvoicePreview()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.74rem;">Fuel Surchg (₹)</label>
+                                <input type="number" id="bsFuelSurcharge" value="0" oninput="triggerBillingInvoicePreview()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.74rem;">Toll (₹)</label>
+                                <input type="number" id="bsToll" value="0" oninput="triggerBillingInvoicePreview()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label style="font-size: 0.74rem;">Parking (₹)</label>
+                                <input type="number" id="bsParking" value="0" oninput="triggerBillingInvoicePreview()">
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="bsGuestSignConfirmed" style="width: 16px; height: 16px; cursor: pointer;">
+                                <label for="bsGuestSignConfirmed" style="margin: 0; font-size: 0.84rem; font-weight: 600; color: #1e293b; cursor: pointer;">
+                                    Guest signature confirmed on driver's duty slip
+                                </label>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="saveBillingReadings()">
+                                    <i class="bi bi-save"></i> Save Slip Readings
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="switchBillingSheetTab(2)">
+                                    Proceed to Invoice &rarr;
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2 PANEL: Same-Number Tax Invoice Generation -->
+                <div id="bsStepPanel2" style="display: none;">
+                    <div id="bsInvoiceCalculationBox">
+                        <!-- Populated dynamically by renderBillingInvoiceSection() -->
+                    </div>
+                </div>
+
+                <!-- STEP 3 PANEL: Print, Email & Payment Status -->
+                <div id="bsStepPanel3" style="display: none;">
+                    <!-- Print & Communications Action Row -->
+                    <div class="card" style="margin-bottom: 16px; padding: 16px;">
+                        <h4 style="font-size: 0.92rem; font-weight: 700; margin-bottom: 12px; color: #0f172a;">
+                            <i class="bi bi-send-check"></i> Document Dispatch & Client Communications
+                        </h4>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-primary" onclick="printBillingInvoiceNow()">
+                                <i class="bi bi-printer-fill"></i> Print Tax Invoice + Duty Slip
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="emailBillingInvoiceNow()">
+                                <i class="bi bi-envelope-fill"></i> Email Invoice to Client
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="sendBillingWhatsAppNow()" style="color: #16a34a; border-color: #16a34a;">
+                                <i class="bi bi-whatsapp"></i> WhatsApp Summary & Pay Link
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="copyBillingSummaryText()">
+                                <i class="bi bi-clipboard-check"></i> Copy Billing Text
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Payment Tracking Card -->
+                    <div class="card" style="padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 14px;">
+                            <div>
+                                <h4 style="font-size: 0.95rem; font-weight: 700; margin: 0; color: #0f172a;">
+                                    <i class="bi bi-credit-card-2-front"></i> Payment Tracking & Settlement
+                                </h4>
+                                <div style="font-size: 0.78rem; color: #64748b;" id="bsPaymentDueNotice">-</div>
+                            </div>
+                            <div id="bsPaymentStatusBadgeBox"></div>
+                        </div>
+
+                        <!-- Payment Entry Form -->
+                        <div id="bsPaymentEntryForm">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 14px;">
+                                <div class="form-group" style="margin: 0;">
+                                    <label style="font-size: 0.76rem; font-weight: 600;">Payment Mode</label>
+                                    <select id="bsPayMode" style="height: 38px; font-size: 0.85rem;">
+                                        <option value="NEFT/RTGS" selected>NEFT / RTGS</option>
+                                        <option value="UPI">UPI Transfer</option>
+                                        <option value="Cheque">Corporate Cheque</option>
+                                        <option value="Credit Card">Credit Card</option>
+                                        <option value="Cash">Cash</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label style="font-size: 0.76rem; font-weight: 600;">UTR / Ref No <span class="required">*</span></label>
+                                    <input type="text" id="bsPayUtr" placeholder="e.g. HDFC20261124" style="height: 38px; font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label style="font-size: 0.76rem; font-weight: 600;">Payment Date</label>
+                                    <input type="date" id="bsPayDate" style="height: 38px; font-size: 0.85rem;">
+                                </div>
+                                <div class="form-group" style="margin: 0;">
+                                    <label style="font-size: 0.76rem; font-weight: 600;">Amount Received (₹) <span class="required">*</span></label>
+                                    <input type="number" id="bsPayAmount" placeholder="0" style="height: 38px; font-size: 0.85rem;">
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 14px;">
+                                <label style="font-size: 0.76rem; font-weight: 600;">Payment Notes / Bank Details</label>
+                                <input type="text" id="bsPayNotes" placeholder="e.g. Bank credit received in HDFC A/C" style="height: 36px; font-size: 0.84rem;">
+                            </div>
+                            <button type="button" class="btn btn-success" id="btnSubmitBillingPayment" onclick="recordBillingPayment()">
+                                <i class="bi bi-check2-all"></i> Record Payment & Mark Paid
+                            </button>
+                        </div>
+
+                        <!-- Already Paid Display Box -->
+                        <div id="bsAlreadyPaidBox" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 700; color: #166534; font-size: 0.95rem;">
+                                        <i class="bi bi-check-circle-fill"></i> Paid in Full
+                                    </div>
+                                    <div style="font-size: 0.82rem; color: #15803d; margin-top: 4px;" id="bsPaidDetailsSummary">-</div>
+                                </div>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="enableEditPayment()">
+                                    <i class="bi bi-pencil"></i> Edit Payment Record
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('billingSheetModal')">Close Window</button>
+                <div id="bsModalFooterDynamic"></div>
             </div>
         </div>
     </div>
@@ -3150,9 +3557,15 @@
         const TAB_CONFIG = {
             bookings: {
                 title: 'Booking Chart & Dispatch Planning',
-                subtitle: 'Real-time dispatch board, status color codes, plotting sheet, duty closure & same-number tax invoices',
+                subtitle: 'Real-time dispatch board, status color codes, plotting sheet, and trip start/closure',
                 actionText: '<i class="bi bi-plus-circle"></i> New Booking',
                 actionFn: () => openNewBookingSheet()
+            },
+            billing: {
+                title: 'Invoice Generation & Billing',
+                subtitle: 'Manage closed duty slips, generate same-number tax invoices, print slips & track payments',
+                actionText: '<i class="bi bi-arrow-clockwise"></i> Refresh Billing',
+                actionFn: () => (typeof loadBillingQueue === 'function' ? loadBillingQueue() : null)
             },
             companies: {
                 title: 'Client Companies & Rate Cards',
@@ -3290,6 +3703,14 @@
                 if (typeof loadBookings === 'function') {
                     if (!companiesList.length) loadCompanies();
                     if (!vendorsList.length) loadVendors();
+                    loadBookings();
+                }
+            }
+            if (tabKey === 'billing') {
+                if (typeof loadBillingQueue === 'function') {
+                    if (!companiesList.length) loadCompanies();
+                    loadBillingQueue();
+                } else if (typeof loadBookings === 'function') {
                     loadBookings();
                 }
             }

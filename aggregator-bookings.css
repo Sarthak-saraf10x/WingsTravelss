@@ -1088,5 +1088,305 @@ tr.row-dr-duty-close:hover {
     }
 }
 
+/* ==========================================================================
+   START / CLOSE BOOKING SWITCH & DEDICATED BILLING SECTION STYLES
+   ========================================================================== */
+
+/* Compact Status Action Icon Button in Booking Chart Table */
+.bk-action-icon-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 6px !important;
+    font-size: 1.05rem !important;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-sizing: border-box;
+    vertical-align: middle;
+    text-decoration: none !important;
+}
+
+/* 1. Start Booking (Driver Accepted / Ready to start) */
+.bk-action-icon-btn.status-start-ready {
+    color: #16a34a !important;
+    background: rgba(22, 163, 74, 0.1) !important;
+    border: 1px solid rgba(22, 163, 74, 0.45) !important;
+}
+.bk-action-icon-btn.status-start-ready:hover {
+    background: #16a34a !important;
+    color: #ffffff !important;
+    border-color: #16a34a !important;
+    transform: translateY(-1px) scale(1.08);
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35);
+}
+
+/* 1b. Start Booking (Pending driver acceptance or details) */
+.bk-action-icon-btn.status-start-pending {
+    color: #94a3b8 !important;
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    opacity: 0.65;
+}
+.bk-action-icon-btn.status-start-pending:hover {
+    color: #475569 !important;
+    border-color: #94a3b8 !important;
+    background: #f1f5f9 !important;
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* 2. End Booking / Close Duty (Trip active DR_DUTY_START) */
+.bk-action-icon-btn.status-end-active {
+    color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.12) !important;
+    border: 1px solid rgba(239, 68, 68, 0.5) !important;
+    animation: pulseEndBooking 2s infinite ease-in-out;
+}
+.bk-action-icon-btn.status-end-active:hover {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
+    transform: translateY(-1px) scale(1.08);
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+}
+
+@keyframes pulseEndBooking {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35);
+    }
+    50% {
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+    }
+}
+
+/* 3. Close Ended -> In Billing (Trip completed DR_DUTY_CLOSE) */
+.bk-action-icon-btn.status-close-ended,
+.bk-action-icon-btn.btn-ended-in-billing {
+    color: #7e22ce !important;
+    background: rgba(126, 34, 206, 0.12) !important;
+    border: 1px solid rgba(126, 34, 206, 0.4) !important;
+}
+.bk-action-icon-btn.status-close-ended:hover,
+.bk-action-icon-btn.btn-ended-in-billing:hover {
+    background: #7e22ce !important;
+    color: #ffffff !important;
+    border-color: #7e22ce !important;
+    transform: translateY(-1px) scale(1.08);
+    box-shadow: 0 2px 6px rgba(126, 34, 206, 0.35);
+}
+
+/* 4. Cancelled Booking */
+.bk-action-icon-btn.status-cancelled {
+    color: #94a3b8 !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* Visually Hidden Helper (keeps screen-readers & test regex functional without taking layout space) */
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* Start / Close Switch Control inside Bookings Table */
+.bk-switch-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #f1f5f9;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid #cbd5e1;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #475569;
+    vertical-align: middle;
+}
+.bk-switch-control:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+}
+.bk-switch-control.active {
+    background: rgba(22, 163, 74, 0.12);
+    border-color: rgba(22, 163, 74, 0.45);
+    color: #15803d;
+}
+.bk-switch-control.active:hover {
+    background: rgba(22, 163, 74, 0.22);
+}
+.bk-switch-toggle {
+    position: relative;
+    width: 28px;
+    height: 16px;
+    background: #94a3b8;
+    border-radius: 10px;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+.bk-switch-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.28);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.bk-switch-control.active .bk-switch-toggle {
+    background: #16a34a;
+}
+.bk-switch-control.active .bk-switch-toggle::after {
+    transform: translateX(12px);
+}
+.bk-switch-label {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Ended -> In Billing Badge Button in Booking Row */
+.btn-ended-in-billing {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(126, 34, 206, 0.12);
+    color: #7e22ce !important;
+    border: 1px solid rgba(126, 34, 206, 0.35);
+    font-weight: 700;
+    font-size: 0.76rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-ended-in-billing:hover {
+    background: rgba(126, 34, 206, 0.22);
+    border-color: #7e22ce;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(126, 34, 206, 0.18);
+}
+
+/* Billing Queue Stage Filter Pills */
+.billing-stage-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.billing-stage-btn {
+    padding: 7px 15px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+.billing-stage-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+.billing-stage-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 2px 5px rgba(234, 88, 12, 0.25);
+}
+.billing-stage-btn.active .billing-stage-badge {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
+.billing-stage-badge {
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* Billing Stage Badges in Table */
+.badge-stage-pending {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    font-weight: 700;
+}
+.badge-stage-invoiced {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+    font-weight: 700;
+}
+.badge-stage-paid {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+    font-weight: 700;
+}
+
+/* Billing Sheet Modal Subtabs */
+.bs-workflow-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 18px;
+    padding-bottom: 4px;
+}
+.bs-tab-btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+.bs-tab-btn:hover {
+    color: var(--text-color);
+    background: rgba(0,0,0,0.04);
+}
+.bs-tab-btn.active {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    border-bottom-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 -2px 0 var(--primary) inset;
+}
+
+
 
 

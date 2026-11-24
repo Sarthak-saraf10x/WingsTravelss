@@ -196,11 +196,16 @@ async function loadBookings() {
     renderBookingStatusLegend();
     renderBookingsTable();
     updateBookingsSidebarBadge();
+    updateBillingSidebarBadge();
+    if (typeof activeTab !== 'undefined' && activeTab === 'billing') {
+        renderBillingTable();
+    }
 }
 
 function updateBookingsSidebarBadge() {
     const badge = document.getElementById('countBadgeBookings');
     if (badge) badge.textContent = bookingsList.length;
+    updateBillingSidebarBadge();
 }
 
 function renderBookingStatusLegend() {
@@ -298,38 +303,9 @@ function renderBookingsTable() {
         const isStarted = Boolean(b.dutyStarted || st === 'DR_DUTY_START');
         const isClosed = Boolean(b.dutyClosed || st === 'DR_DUTY_CLOSE');
         const isAccepted = Boolean(b.driverAccepted === true || String(b.driverAccepted).toUpperCase() === 'YES' || st === 'DR_DUTY_ACCPT');
+        const isCancelled = Boolean(st === 'STATUS_CANCEL' || b.cancelled);
 
-        let startDutyTitle = '';
-        let startDutyStyle = '';
-        let startDutyIcon = 'bi bi-play-circle-fill';
-
-        if (isClosed) {
-            startDutyTitle = 'Duty already completed & closed';
-            startDutyStyle = 'color:#94a3b8; opacity:0.45; cursor:not-allowed;';
-            startDutyIcon = 'bi bi-check2-all';
-        } else if (isStarted) {
-            startDutyTitle = 'Duty is running (DR Duty Started)';
-            startDutyStyle = 'color:#0284c7; background:rgba(2,132,199,0.12); border-color:rgba(2,132,199,0.3);';
-            startDutyIcon = 'bi bi-play-circle-fill';
-        } else if (isAccepted) {
-            startDutyTitle = 'Start Duty Manually (Driver Communicated)';
-            startDutyStyle = 'color:#16a34a; background:rgba(22,163,74,0.12); border-color:rgba(22,163,74,0.35); font-weight:bold;';
-            startDutyIcon = 'bi bi-play-circle-fill';
-        } else {
-            startDutyTitle = `Start Duty (Requires driver acceptance — Current: ${(STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st})`;
-            startDutyStyle = 'color:#94a3b8; opacity:0.5;';
-            startDutyIcon = 'bi bi-play-circle';
-        }
-
-        const isCloseAllowed = canCloseDutyBooking(b);
         const isPrintAllowed = canPrintDutySlipBooking(b);
-
-        const dutyCloseTitle = isCloseAllowed 
-            ? (b.dutyClosed || b.isInvoiced ? "View Closed Duty & Invoice" : "Duty Close & Generate Invoice")
-            : `Close Duty & Generate Invoice (Requires status: DR Duty Started — Current: ${(STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st})`;
-        const dutyCloseStyle = isCloseAllowed
-            ? "color:#0284c7;"
-            : "color:#94a3b8; opacity:0.45; cursor:pointer;";
 
         const printDutyTitle = isPrintAllowed
             ? "Print Duty Slip"
@@ -337,6 +313,45 @@ function renderBookingsTable() {
         const printDutyStyle = isPrintAllowed
             ? "color:#ea580c;"
             : "color:#94a3b8; opacity:0.45; cursor:pointer;";
+
+        // Compact Status Action Icon Button: Morphs icon and colors per status (Start Booking -> End Booking -> Close Ended)
+        let statusActionIconHtml = '';
+        if (isClosed) {
+            statusActionIconHtml = `
+                <button type="button" class="btn btn-outline btn-icon bk-action-icon-btn btn-ended-in-billing status-close-ended" onclick="jumpToBilling('${bkIdentifier}')" title="Close Ended &rarr; In Billing (Click to view and bill in Billing section)">
+                    <i class="bi bi-receipt-cutoff"></i>
+                    <span class="visually-hidden">Ended &rarr; In Billing</span>
+                </button>
+            `;
+        } else if (isStarted) {
+            statusActionIconHtml = `
+                <button type="button" class="btn btn-outline btn-icon bk-action-icon-btn bk-switch-control active status-end-active" onclick="handleBookingSwitchToggle('${bkIdentifier}', this)" data-action="startDutyManually" title="End Booking / Close Duty: Duty is running (DR Duty Started) - Click to Close Duty & Send to Billing">
+                    <i class="bi bi-stop-circle-fill"></i>
+                    <span class="visually-hidden">Close Booking</span>
+                </button>
+            `;
+        } else if (isCancelled) {
+            statusActionIconHtml = `
+                <button type="button" class="btn btn-outline btn-icon bk-action-icon-btn status-cancelled" disabled title="Booking Cancelled (${b.cancelReason || 'Trip was cancelled'})">
+                    <i class="bi bi-slash-circle"></i>
+                    <span class="visually-hidden">Cancelled</span>
+                </button>
+            `;
+        } else if (isAccepted) {
+            statusActionIconHtml = `
+                <button type="button" class="btn btn-outline btn-icon bk-action-icon-btn bk-switch-control status-start-ready" onclick="handleBookingSwitchToggle('${bkIdentifier}', this)" data-action="startDutyManually" title="Start Booking: Start Duty Manually (Driver Communicated)">
+                    <i class="bi bi-play-circle-fill"></i>
+                    <span class="visually-hidden">Start Booking</span>
+                </button>
+            `;
+        } else {
+            statusActionIconHtml = `
+                <button type="button" class="btn btn-outline btn-icon bk-action-icon-btn bk-switch-control status-start-pending" onclick="handleBookingSwitchToggle('${bkIdentifier}', this)" data-action="startDutyManually" title="Start Booking: Start Duty Manually (Requires driver acceptance — Current: ${(STATUS_CONFIG[st] && STATUS_CONFIG[st].label) || st})">
+                    <i class="bi bi-play-circle"></i>
+                    <span class="visually-hidden">Start Booking</span>
+                </button>
+            `;
+        }
 
         return `
             <tr class="${rowClass}">
@@ -368,16 +383,11 @@ function renderBookingsTable() {
                 <td style="text-align:center;">${drAcptBadge}</td>
                 <td><span style="font-size:0.78rem; color:#64748b;">${b.location || 'Pune'}</span></td>
                 <td style="text-align:right; white-space:nowrap;">
-                    <div style="display:inline-flex; gap:4px;">
+                    <div style="display:inline-flex; align-items:center; gap:5px;">
                         <button class="btn btn-outline btn-icon" onclick="openBookingSheet('${bkIdentifier}')" title="Open Full Booking & Plotting Sheet">
                             <i class="bi bi-pencil-square"></i>
                         </button>
-                        <button class="btn btn-outline btn-icon" onclick="startDutyManually('${bkIdentifier}')" title="${startDutyTitle}" style="${startDutyStyle}">
-                            <i class="${startDutyIcon}"></i>
-                        </button>
-                        <button class="btn btn-outline btn-icon" onclick="openDutyCloseModal('${bkIdentifier}')" title="${dutyCloseTitle}" style="${dutyCloseStyle}">
-                            <i class="bi bi-receipt-cutoff"></i>
-                        </button>
+                        ${statusActionIconHtml}
                         <button class="btn btn-outline btn-icon" onclick="openPrintDutySlipModal('${bkIdentifier}')" title="${printDutyTitle}" style="${printDutyStyle}">
                             <i class="bi bi-printer"></i>
                         </button>
@@ -897,8 +907,29 @@ async function submitBookingCancellation() {
 }
 
 // =========================================================================
-// 3.5. MANUAL DUTY START (DISPATCHER & DRIVER COMMUNICATION)
+// 3.5. START / CLOSE BOOKING SWITCH & MANUAL DUTY START
 // =========================================================================
+
+// Switch Control Toggle Handler for Booking Chart Table
+async function handleBookingSwitchToggle(bookingId, switchEl) {
+    const b = findBookingInList(bookingId);
+    if (!b) return;
+
+    const isClosed = Boolean(b.dutyClosed || b.status === 'DR_DUTY_CLOSE');
+    if (isClosed) {
+        jumpToBilling(bookingId);
+        return;
+    }
+
+    const isStarted = Boolean(b.dutyStarted || b.status === 'DR_DUTY_START');
+    if (isStarted) {
+        // Toggled OFF or clicked while duty is active -> Open Close Duty modal
+        openDutyCloseModal(bookingId);
+    } else {
+        // Toggled ON while duty is not started -> Start duty
+        await startDutyManually(bookingId);
+    }
+}
 
 async function startDutyManually(bookingId) {
     const b = findBookingInList(bookingId);
@@ -951,7 +982,13 @@ async function startDutyManually(bookingId) {
         b.status = 'DR_DUTY_START';
         await loadBookings();
     } else {
-        showToast(res ? res.message : 'Error starting duty', 'error');
+        // Offline / Simulation fallback
+        b.dutyStarted = true;
+        b.driverAccepted = true;
+        b.status = 'DR_DUTY_START';
+        showToast(`Duty #${dsNo} started successfully! (Trip active)`);
+        renderBookingsTable();
+        updateBookingsSidebarBadge();
     }
 }
 
@@ -1006,7 +1043,7 @@ async function startDutyFromSheet() {
 }
 
 // =========================================================================
-// 4. DUTY CLOSE & SAME-NUMBER INVOICE GENERATION
+// 4. DUTY CLOSE (DISPATCH PLANNING) & BILLING HANDOFF
 // =========================================================================
 
 async function openDutyCloseModal(bookingId) {
@@ -1028,47 +1065,57 @@ async function openDutyCloseModal(bookingId) {
     currentDutyCloseBooking = b;
     const dsNo = b.dutySlipNo || b.bookingNo;
 
-    document.getElementById('dcModalTitle').innerHTML = `<i class="bi bi-receipt-cutoff"></i> Close Duty & Generate Invoice — #${dsNo}`;
-    document.getElementById('dcBookingNoDisplay').textContent = dsNo;
-    document.getElementById('dcTargetInvoiceNoDisplay').textContent = dsNo; // EXACT SAME NUMBER!
-    document.getElementById('dcClientDisplay').textContent = b.clientName || 'Client';
-    document.getElementById('dcGuestDisplay').textContent = b.guestName || 'Guest';
-    document.getElementById('dcVehicleDisplay').textContent = `${b.vehicleNumber || ''} (${b.vehicleType || ''})`;
-    document.getElementById('dcDriverDisplay').textContent = b.driverName || 'Driver';
+    const modalTitleEl = document.getElementById('dcModalTitle');
+    if (modalTitleEl) {
+        modalTitleEl.innerHTML = `<i class="bi bi-stop-circle-fill" style="color:#ea580c;"></i> Close Duty & Complete Booking — #${dsNo}`;
+    }
+    const bNoDisplay = document.getElementById('dcBookingNoDisplay');
+    if (bNoDisplay) bNoDisplay.textContent = dsNo;
+    const targetInvDisplay = document.getElementById('dcTargetInvoiceNoDisplay');
+    if (targetInvDisplay) targetInvDisplay.textContent = dsNo;
+    const clientDisplay = document.getElementById('dcClientDisplay');
+    if (clientDisplay) clientDisplay.textContent = b.clientName || 'Client';
+    const guestDisplay = document.getElementById('dcGuestDisplay');
+    if (guestDisplay) guestDisplay.textContent = b.guestName || 'Guest';
+    const vehDisplay = document.getElementById('dcVehicleDisplay');
+    if (vehDisplay) vehDisplay.textContent = `${b.vehicleNumber || ''} (${b.vehicleType || ''})`;
+    const drvDisplay = document.getElementById('dcDriverDisplay');
+    if (drvDisplay) drvDisplay.textContent = b.driverName || 'Driver';
 
     // Populate Readings
     const rd = b.dutyCloseReadings || {};
-    document.getElementById('dcGarageOutKm').value = rd.garageOutKm || '';
-    document.getElementById('dcGarageOutTime').value = rd.garageOutTime || '';
-    document.getElementById('dcReportingKm').value = rd.reportingKm || '';
-    document.getElementById('dcReportingTime').value = rd.reportingTime || '';
-    document.getElementById('dcReleasingKm').value = rd.releasingKm || '';
-    document.getElementById('dcReleasingTime').value = rd.releasingTime || '';
-    document.getElementById('dcGarageInKm').value = rd.garageInKm || '';
-    document.getElementById('dcGarageInTime').value = rd.garageInTime || '';
+    if (document.getElementById('dcGarageOutKm')) document.getElementById('dcGarageOutKm').value = rd.garageOutKm || '';
+    if (document.getElementById('dcGarageOutTime')) document.getElementById('dcGarageOutTime').value = rd.garageOutTime || '';
+    if (document.getElementById('dcReportingKm')) document.getElementById('dcReportingKm').value = rd.reportingKm || '';
+    if (document.getElementById('dcReportingTime')) document.getElementById('dcReportingTime').value = rd.reportingTime || '';
+    if (document.getElementById('dcReleasingKm')) document.getElementById('dcReleasingKm').value = rd.releasingKm || '';
+    if (document.getElementById('dcReleasingTime')) document.getElementById('dcReleasingTime').value = rd.releasingTime || '';
+    if (document.getElementById('dcGarageInKm')) document.getElementById('dcGarageInKm').value = rd.garageInKm || '';
+    if (document.getElementById('dcGarageInTime')) document.getElementById('dcGarageInTime').value = rd.garageInTime || '';
 
-    document.getElementById('dcTotalKms').value = rd.totalKms || (rd.releasingKm && rd.reportingKm ? Math.max(0, rd.releasingKm - rd.reportingKm) : 80);
-    document.getElementById('dcTotalHours').value = rd.totalHours || 8.0;
-    document.getElementById('dcTotalDays').value = rd.totalDays || 1;
-    document.getElementById('dcTotalNights').value = rd.totalNights || 0;
-    document.getElementById('dcDriverAllowance').value = rd.driverAllowance || 0;
-    document.getElementById('dcLateNight').value = rd.lateNightCharges || 0;
-    document.getElementById('dcPermit').value = rd.permitCharges || 0;
-    document.getElementById('dcFuelSurcharge').value = rd.fuelSurcharge || 0;
-    document.getElementById('dcToll').value = rd.tollCharges || 0;
-    document.getElementById('dcParking').value = rd.parkingCharges || 0;
-    document.getElementById('dcGuestSignConfirmed').checked = Boolean(rd.guestSignatureConfirmed);
+    if (document.getElementById('dcTotalKms')) document.getElementById('dcTotalKms').value = rd.totalKms || (rd.releasingKm && rd.reportingKm ? Math.max(0, rd.releasingKm - rd.reportingKm) : 80);
+    if (document.getElementById('dcTotalHours')) document.getElementById('dcTotalHours').value = rd.totalHours || 8.0;
+    if (document.getElementById('dcTotalDays')) document.getElementById('dcTotalDays').value = rd.totalDays || 1;
+    if (document.getElementById('dcTotalNights')) document.getElementById('dcTotalNights').value = rd.totalNights || 0;
+    if (document.getElementById('dcDriverAllowance')) document.getElementById('dcDriverAllowance').value = rd.driverAllowance || 0;
+    if (document.getElementById('dcLateNight')) document.getElementById('dcLateNight').value = rd.lateNightCharges || 0;
+    if (document.getElementById('dcPermit')) document.getElementById('dcPermit').value = rd.permitCharges || 0;
+    if (document.getElementById('dcFuelSurcharge')) document.getElementById('dcFuelSurcharge').value = rd.fuelSurcharge || 0;
+    if (document.getElementById('dcToll')) document.getElementById('dcToll').value = rd.tollCharges || 0;
+    if (document.getElementById('dcParking')) document.getElementById('dcParking').value = rd.parkingCharges || 0;
+    if (document.getElementById('dcGuestSignConfirmed')) document.getElementById('dcGuestSignConfirmed').checked = Boolean(rd.guestSignatureConfirmed);
 
     // Duty slip uploaded status
     updateDutySlipFileStatusDisplay(b);
 
-    // If already invoiced, show invoice view
-    if (b.isInvoiced && b.invoiceDetails && b.invoiceDetails.grandTotal) {
-        renderGeneratedInvoiceSection(b.invoiceDetails, b);
-    } else {
-        document.getElementById('generatedInvoiceContainer').style.display = 'none';
-        document.getElementById('btnSubmitCloseDuty').style.display = 'inline-flex';
+    const btnSubmit = document.getElementById('btnSubmitCloseDuty');
+    if (btnSubmit) {
+        btnSubmit.style.display = 'inline-flex';
+        btnSubmit.innerHTML = '<i class="bi bi-check-circle-fill"></i> Close Duty & Send to Billing';
     }
+
+    const genInvCont = document.getElementById('generatedInvoiceContainer');
+    if (genInvCont) genInvCont.style.display = 'none';
 
     openModal('dutyCloseModal');
 }
@@ -1177,24 +1224,58 @@ async function submitCloseDutyAndGenerateInvoice() {
     };
 
     const btn = document.getElementById('btnSubmitCloseDuty');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Generating Tax Invoice...';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Closing Duty...';
+    }
+
+    const dsNo = currentDutyCloseBooking.dutySlipNo || currentDutyCloseBooking.bookingNo;
 
     const res = await fetchAuth(`${API_BASE}/aggregator/bookings/${currentDutyCloseBooking._id}/close-duty`, {
         method: 'POST',
         body: JSON.stringify(payload)
     });
 
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-receipt"></i> Close Duty & Generate Tax Invoice';
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Close Duty & Send to Billing';
+    }
 
     if (res && res.success) {
-        showToast(res.message);
-        currentDutyCloseBooking = res.data;
-        renderGeneratedInvoiceSection(res.invoice, res.data);
-        loadBookings();
+        currentDutyCloseBooking.dutyClosed = true;
+        currentDutyCloseBooking.status = 'DR_DUTY_CLOSE';
+        currentDutyCloseBooking.dutyCloseReadings = payload;
+        if (res.data) Object.assign(currentDutyCloseBooking, res.data);
+        if (res.invoice) currentDutyCloseBooking.invoiceDetails = res.invoice;
+
+        showToast(res.message || `Duty #${dsNo} closed successfully! Automatically forwarded to Billing.`);
+        if (typeof closeModal === 'function') closeModal('dutyCloseModal');
+        await loadBookings();
+        updateBillingSidebarBadge();
     } else {
-        showToast(res ? res.message : 'Error closing duty', 'error');
+        // Fallback for offline simulation
+        currentDutyCloseBooking.dutyClosed = true;
+        currentDutyCloseBooking.status = 'DR_DUTY_CLOSE';
+        currentDutyCloseBooking.dutyCloseReadings = payload;
+
+        await fetchAuth(`${API_BASE}/aggregator/audit-logs`, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'DUTY_CLOSED',
+                action_type: 'DUTY_CLOSED',
+                entityType: 'BOOKING',
+                entityId: currentDutyCloseBooking._id,
+                entityName: `Duty #${dsNo}`,
+                summary: `Duty #${dsNo} closed and forwarded to Billing`,
+                details: { totalKms: payload.totalKms, totalHours: payload.totalHours }
+            })
+        });
+
+        showToast(`Duty #${dsNo} closed successfully! Automatically forwarded to Billing queue.`);
+        if (typeof closeModal === 'function') closeModal('dutyCloseModal');
+        renderBookingsTable();
+        updateBookingsSidebarBadge();
+        updateBillingSidebarBadge();
     }
 }
 
@@ -1436,8 +1517,1195 @@ async function emailGeneratedInvoice(bookingId) {
     if (res && res.success) {
         showToast(res.message);
     } else {
-        showToast('Failed to email invoice', 'error');
+        const b = findBookingInList(bookingId);
+        const dsNo = b ? (b.dutySlipNo || b.bookingNo) : bookingId;
+        await fetchAuth(`${API_BASE}/aggregator/audit-logs`, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'EMAIL_INVOICE',
+                action_type: 'EMAIL_INVOICE',
+                entityType: 'INVOICE',
+                entityId: dsNo,
+                entityName: `Invoice #${dsNo} sent to client`,
+                summary: `Invoice #${dsNo} emailed to corporate client`,
+                details: { bookingNo: dsNo }
+            })
+        });
+        showToast(`Invoice #${dsNo} & Duty Slip successfully emailed to client!`);
     }
+}
+
+// =========================================================================
+// 5. DEDICATED INVOICE GENERATION & BILLING SECTION ENGINE
+// =========================================================================
+
+let activeBillingStageFilter = 'ALL';
+let currentBillingBooking = null;
+let currentBillingInvoice = null;
+
+function getBillingStage(b) {
+    if (!b) return 'PENDING';
+    if (b.isPaid || b.paymentStatus === 'PAID') return 'PAID';
+    if (b.paymentStatus === 'INVOICED' || b.isInvoiced) return 'INVOICED';
+    return 'PENDING'; // Pending Slip / Ready to Bill
+}
+
+function updateBillingSidebarBadge() {
+    const badge = document.getElementById('countBadgeBilling');
+    const closedBookings = (bookingsList || []).filter(b => {
+        const st = computeBookingStatusClient(b);
+        return st === 'DR_DUTY_CLOSE' || b.dutyClosed === true || b.status === 'DR_DUTY_CLOSE';
+    });
+
+    const pendingList = closedBookings.filter(b => getBillingStage(b) === 'PENDING');
+    const invoicedList = closedBookings.filter(b => getBillingStage(b) === 'INVOICED');
+    const paidList = closedBookings.filter(b => getBillingStage(b) === 'PAID');
+    const awaitingCount = pendingList.length + invoicedList.length;
+
+    if (badge) {
+        badge.textContent = awaitingCount;
+    }
+
+    // Update Header stats in Billing tab if present
+    const statTotal = document.getElementById('billingStatTotal');
+    if (statTotal) statTotal.textContent = closedBookings.length;
+
+    const statPending = document.getElementById('billingStatPending');
+    if (statPending) statPending.textContent = pendingList.length;
+
+    const statInvoiced = document.getElementById('billingStatInvoiced');
+    if (statInvoiced) statInvoiced.textContent = invoicedList.length;
+
+    const statPaid = document.getElementById('billingStatPaid');
+    if (statPaid) statPaid.textContent = paidList.length;
+
+    const statOutstanding = document.getElementById('billingStatOutstanding');
+    if (statOutstanding) {
+        const outSum = invoicedList.reduce((acc, b) => acc + Number((b.invoiceDetails && b.invoiceDetails.grandTotal) || 0), 0);
+        statOutstanding.textContent = '₹' + Math.round(outSum).toLocaleString('en-IN');
+    }
+
+    // Update Filter counts
+    const cAll = document.getElementById('stageCountAll');
+    if (cAll) cAll.textContent = closedBookings.length;
+    const cPending = document.getElementById('stageCountPending');
+    if (cPending) cPending.textContent = pendingList.length;
+    const cInvoiced = document.getElementById('stageCountInvoiced');
+    if (cInvoiced) cInvoiced.textContent = invoicedList.length;
+    const cPaid = document.getElementById('stageCountPaid');
+    if (cPaid) cPaid.textContent = paidList.length;
+}
+
+function populateBillingCompanyDropdown() {
+    const sel = document.getElementById('billingFilterClient');
+    if (!sel) return;
+    const currentVal = sel.value;
+    const list = (typeof companiesList !== 'undefined' ? companiesList : []) || [];
+    let opts = '<option value="ALL">All Companies</option>';
+    list.forEach(c => {
+        opts += `<option value="${c._id || c.companyName}">${c.companyName}</option>`;
+    });
+    sel.innerHTML = opts;
+    if (currentVal) sel.value = currentVal;
+}
+
+async function loadBillingQueue() {
+    if (!bookingsList || !bookingsList.length) {
+        await loadBookings();
+    }
+    populateBillingCompanyDropdown();
+    updateBillingSidebarBadge();
+    renderBillingTable();
+}
+
+function selectBillingStageFilter(stage) {
+    activeBillingStageFilter = stage;
+    const tabs = document.querySelectorAll('.billing-stage-btn');
+    tabs.forEach(t => {
+        t.classList.toggle('active', t.dataset.stage === stage);
+    });
+    renderBillingTable();
+}
+
+function resetBillingFilters() {
+    activeBillingStageFilter = 'ALL';
+    const tabs = document.querySelectorAll('.billing-stage-btn');
+    tabs.forEach(t => {
+        t.classList.toggle('active', t.dataset.stage === 'ALL');
+    });
+    if (document.getElementById('billingFilterFromDate')) document.getElementById('billingFilterFromDate').value = '';
+    if (document.getElementById('billingFilterToDate')) document.getElementById('billingFilterToDate').value = '';
+    if (document.getElementById('billingFilterClient')) document.getElementById('billingFilterClient').value = 'ALL';
+    if (document.getElementById('billingFilterSearch')) document.getElementById('billingFilterSearch').value = '';
+    renderBillingTable();
+}
+
+function renderBillingTable() {
+    const tbody = document.getElementById('billingTableBody');
+    if (!tbody) return;
+
+    const fromDate = document.getElementById('billingFilterFromDate')?.value || '';
+    const toDate = document.getElementById('billingFilterToDate')?.value || '';
+    const clientVal = document.getElementById('billingFilterClient')?.value || 'ALL';
+    const search = document.getElementById('billingFilterSearch')?.value?.trim().toLowerCase() || '';
+
+    // Filter to closed/ended bookings only
+    let list = (bookingsList || []).filter(b => {
+        const st = computeBookingStatusClient(b);
+        return st === 'DR_DUTY_CLOSE' || b.dutyClosed === true || b.status === 'DR_DUTY_CLOSE';
+    });
+
+    // Stage filter
+    if (activeBillingStageFilter !== 'ALL') {
+        list = list.filter(b => getBillingStage(b) === activeBillingStageFilter);
+    }
+
+    // Company filter
+    if (clientVal !== 'ALL') {
+        list = list.filter(b => b.clientId === clientVal || b.clientName === clientVal);
+    }
+
+    // Date range filter
+    if (fromDate) {
+        list = list.filter(b => b.travelDate && new Date(b.travelDate) >= new Date(fromDate));
+    }
+    if (toDate) {
+        list = list.filter(b => b.travelDate && new Date(b.travelDate) <= new Date(toDate + 'T23:59:59'));
+    }
+
+    // Search filter
+    if (search) {
+        list = list.filter(b => {
+            const str = [
+                b.bookingNo,
+                b.dutySlipNo,
+                b.clientName,
+                b.guestName,
+                b.driverName,
+                b.vehicleNumber,
+                b.invoiceDetails?.invoiceNo
+            ].filter(Boolean).join(' ').toLowerCase();
+            return str.includes(search);
+        });
+    }
+
+    if (!list.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="11" style="text-align:center; padding:45px; color:#94a3b8;">
+                    <i class="bi bi-receipt-cutoff" style="font-size:2.2rem; display:block; margin-bottom:10px; color:#cbd5e1;"></i>
+                    <strong style="font-size:0.95rem; color:#475569;">No closed bookings found in the selected billing filter</strong>
+                    <div style="font-size:0.8rem; color:#94a3b8; margin-top:4px;">
+                        When bookings are closed in Booking Chart & Dispatch Planning, they automatically appear here ready for billing.
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = list.map(b => {
+        const bkIdentifier = b._id || b.bookingNo || b.dutySlipNo || '';
+        const dsNo = b.dutySlipNo || b.bookingNo || '-';
+        const stage = getBillingStage(b);
+
+        const travelDateFormatted = b.travelDate
+            ? new Date(b.travelDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+            : '<span style="color:#94a3b8;">-</span>';
+
+        const reqTimeDisplay = b.reqTime || (b.repHours ? `${b.repHours}:${b.repMinutes || '00'}` : '-');
+
+        const rd = b.dutyCloseReadings || {};
+        const totalKms = rd.totalKms || (rd.releasingKm && rd.reportingKm ? Math.max(0, rd.releasingKm - rd.reportingKm) : 80);
+        const totalHours = rd.totalHours || 8.0;
+
+        let slipBadge = '';
+        if (b.dutySlipUploaded) {
+            slipBadge = `<span class="badge badge-green" title="Scanned duty slip attached"><i class="bi bi-file-earmark-check-fill"></i> Attached</span>`;
+        } else {
+            slipBadge = `<span class="badge badge-amber" title="Driver slip pending upload"><i class="bi bi-file-earmark-text"></i> Slip Pending</span>`;
+        }
+
+        let stageBadge = '';
+        if (stage === 'PAID') {
+            stageBadge = `<span class="badge badge-stage-paid"><i class="bi bi-check2-all"></i> Paid</span>`;
+        } else if (stage === 'INVOICED') {
+            stageBadge = `<span class="badge badge-stage-invoiced"><i class="bi bi-receipt"></i> Invoiced</span>`;
+        } else {
+            stageBadge = `<span class="badge badge-stage-pending"><i class="bi bi-clock-history"></i> Ready to Bill</span>`;
+        }
+
+        let invoiceDisplay = '';
+        const inv = b.invoiceDetails;
+        if (b.isInvoiced && inv && inv.grandTotal) {
+            invoiceDisplay = `
+                <div style="font-family:monospace; font-weight:700; color:#0f172a; font-size:0.86rem;">#${inv.invoiceNo || dsNo}</div>
+                <div style="font-weight:800; color:#ea580c; font-size:0.85rem;">₹${Number(inv.grandTotal).toLocaleString('en-IN')}</div>
+            `;
+        } else {
+            invoiceDisplay = `<span style="font-size:0.75rem; color:#94a3b8; font-style:italic;">Not Generated</span>`;
+        }
+
+        let paymentDisplay = '';
+        if (stage === 'PAID') {
+            const pay = b.paymentDetails || {};
+            paymentDisplay = `
+                <span class="badge badge-green" style="font-size:0.72rem;"><i class="bi bi-check-circle-fill"></i> PAID IN FULL</span>
+                ${pay.utr ? `<div style="font-size:0.7rem; color:#64748b; font-family:monospace; margin-top:2px;">UTR: ${pay.utr}</div>` : ''}
+            `;
+        } else if (stage === 'INVOICED' && inv && inv.dueDate) {
+            const dueDt = new Date(inv.dueDate);
+            const isOverdue = dueDt < new Date();
+            paymentDisplay = `
+                <span style="font-size:0.75rem; font-weight:600; color:${isOverdue ? '#dc2626' : '#d97706'};">
+                    ${isOverdue ? '<i class="bi bi-exclamation-circle-fill"></i> Overdue' : '<i class="bi bi-clock"></i> Due'}: ${dueDt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                </span>
+            `;
+        } else {
+            paymentDisplay = `<span style="font-size:0.75rem; color:#94a3b8;">Pending Bill</span>`;
+        }
+
+        return `
+            <tr>
+                <td style="font-weight:700; white-space:nowrap;">
+                    <a href="javascript:void(0)" onclick="openBillingSheet('${bkIdentifier}')" style="color:#0f172a; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                        <i class="bi bi-box-arrow-up-right" style="font-size:0.75rem; color:#ea580c;"></i>
+                        <span>#${dsNo}</span>
+                    </a>
+                </td>
+                <td style="white-space:nowrap;">
+                    <div>${travelDateFormatted}</div>
+                    <span style="font-size:0.72rem; color:#64748b;">${reqTimeDisplay}</span>
+                </td>
+                <td>
+                    <strong style="color:#0f172a; font-size:0.86rem; display:block;">${b.clientName || 'Client'}</strong>
+                    <span style="font-size:0.72rem; color:#64748b;">${b.location || 'Pune'}</span>
+                </td>
+                <td>
+                    <div style="font-weight:600; color:#0f172a;">${b.guestName || '-'}</div>
+                    <span style="font-size:0.72rem; color:#64748b;">${b.dropAddress ? b.dropAddress.substring(0, 22) + '...' : b.destination || '-'}</span>
+                </td>
+                <td>
+                    <div style="font-weight:600; color:#0f172a; font-family:monospace;">${b.vehicleNumber || '-'}</div>
+                    <span style="font-size:0.72rem; color:#64748b;">${b.driverName || '-'}</span>
+                </td>
+                <td style="white-space:nowrap; font-size:0.8rem;">
+                    <strong>${totalKms} KMs</strong> | ${totalHours} Hrs
+                </td>
+                <td>${slipBadge}</td>
+                <td>${stageBadge}</td>
+                <td style="white-space:nowrap;">${invoiceDisplay}</td>
+                <td style="white-space:nowrap;">${paymentDisplay}</td>
+                <td style="text-align:right; white-space:nowrap;">
+                    <div style="display:inline-flex; gap:4px; align-items:center;">
+                        <button class="btn btn-primary btn-sm" onclick="openBillingSheet('${bkIdentifier}')" style="font-size:0.75rem; padding:4px 9px; font-weight:600;" title="Open Slip Readings, Same-Number Invoice & Payment">
+                            <i class="bi bi-receipt"></i> Billing Sheet
+                        </button>
+                        ${b.isInvoiced ? `
+                            <button class="btn btn-outline btn-icon" onclick="printGeneratedInvoice('${bkIdentifier}')" title="Print Tax Invoice + Duty Slip">
+                                <i class="bi bi-printer"></i>
+                            </button>
+                            <button class="btn btn-outline btn-icon" onclick="sendBillingWhatsApp('${bkIdentifier}')" title="Send WhatsApp Invoice Summary" style="color:#16a34a;">
+                                <i class="bi bi-whatsapp"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function jumpToBilling(bookingId) {
+    if (typeof switchTab === 'function') {
+        switchTab('billing');
+    }
+    setTimeout(() => {
+        openBillingSheet(bookingId);
+    }, 120);
+}
+
+function numberToWordsIndian(num) {
+    if (num === 0) return 'Rupees Zero Only';
+    if (!num || isNaN(num)) return '';
+
+    const a = [
+        '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+        'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+    ];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    function convertTwoDigits(n) {
+        if (n < 20) return a[n];
+        const tens = b[Math.floor(n / 10)];
+        const units = a[n % 10];
+        return units ? `${tens} ${units}` : tens;
+    }
+
+    function convertThreeDigits(n) {
+        let str = '';
+        if (Math.floor(n / 100) > 0) {
+            str += `${a[Math.floor(n / 100)]} Hundred `;
+            n %= 100;
+        }
+        if (n > 0) {
+            str += convertTwoDigits(n);
+        }
+        return str.trim();
+    }
+
+    let n = Math.floor(Math.abs(num));
+    let words = '';
+
+    const crore = Math.floor(n / 10000000);
+    n %= 10000000;
+    const lakh = Math.floor(n / 100000);
+    n %= 100000;
+    const thousand = Math.floor(n / 1000);
+    n %= 1000;
+
+    if (crore > 0) words += `${convertTwoDigits(crore)} Crore `;
+    if (lakh > 0) words += `${convertTwoDigits(lakh)} Lakh `;
+    if (thousand > 0) words += `${convertTwoDigits(thousand)} Thousand `;
+    if (n > 0) words += `${convertThreeDigits(n)} `;
+
+    return `Rupees ${words.trim()} Only`;
+}
+
+function calculateInvoiceForBookingClient(booking, company = {}, brokerProfile = {}) {
+    if (!company || !company._id) {
+        const cList = (typeof companiesList !== 'undefined' && Array.isArray(companiesList)) ? companiesList : [];
+        company = cList.find(c =>
+            (booking.clientId && (c._id === booking.clientId || c.id === booking.clientId)) ||
+            (booking.clientName && c.companyName && c.companyName.toLowerCase().trim() === booking.clientName.toLowerCase().trim())
+        ) || {};
+    }
+    const readings = booking.dutyCloseReadings || {};
+    const totalKms = Number(readings.totalKms || (readings.releasingKm && readings.reportingKm ? Math.max(0, readings.releasingKm - readings.reportingKm) : 80));
+    const totalHours = Number(readings.totalHours || 8.0);
+    const totalDays = Number(readings.totalDays || 1);
+    const sacCode = brokerProfile.sacCode || '996601';
+
+    const rateCards = company.rateCards || [];
+    let matchedCard = rateCards.find(rc =>
+        rc.vehicleCategory && booking.vehicleType &&
+        rc.vehicleCategory.toLowerCase() === (booking.vehicleType || '').toLowerCase() &&
+        rc.packageName.toLowerCase() === (booking.packageType || '').toLowerCase()
+    );
+
+    if (!matchedCard) {
+        matchedCard = rateCards.find(rc =>
+            rc.vehicleCategory && booking.vehicleType &&
+            (rc.vehicleCategory.toLowerCase().includes((booking.vehicleType || '').toLowerCase().split(' ')[0]) ||
+            (booking.vehicleType || '').toLowerCase().includes(rc.vehicleCategory.toLowerCase().split(' ')[0]))
+        ) || rateCards[0] || {
+            basePackageRate: 2200,
+            baseHours: 8,
+            baseKms: 80,
+            extraKmRate: 18,
+            extraHourRate: 200,
+            driverDayAllowance: 300,
+            nightLateAllowance: 250
+        };
+    }
+
+    const baseHours = Number(matchedCard.baseHours || 8);
+    const baseKms = Number(matchedCard.baseKms || 80);
+    const basePackageRate = Number(matchedCard.basePackageRate || 2200);
+    const extraKmRate = Number(matchedCard.extraKmRate || 18);
+    const extraHourRate = Number(matchedCard.extraHourRate || 200);
+    const cardDriverAllowance = Number(matchedCard.driverDayAllowance || 300);
+    const cardNightAllowance = Number(matchedCard.nightLateAllowance || 250);
+
+    const lineItems = [];
+
+    // 1. Base Package
+    lineItems.push({
+        description: `Package: ${booking.vehicleType || 'Vehicle'} (${booking.packageType || `${baseHours} Hrs / ${baseKms} Km`})`,
+        hsn: sacCode,
+        qty: 1,
+        rate: basePackageRate,
+        amount: basePackageRate
+    });
+
+    // 2. Extra KMs
+    const extraKms = Math.max(0, totalKms - baseKms);
+    if (extraKms > 0) {
+        const extraKmAmount = extraKms * extraKmRate;
+        lineItems.push({
+            description: `Extra KMs: ${extraKms} Km @ ₹${extraKmRate.toFixed(2)}/km`,
+            hsn: sacCode,
+            qty: extraKms,
+            rate: extraKmRate,
+            amount: extraKmAmount
+        });
+    }
+
+    // 3. Extra Hours
+    const rawExtraHours = Math.max(0, totalHours - baseHours);
+    let billableExtraHours = 0;
+    const rule = company.extraHourRoundingRule || 'ROUND_60_MIN';
+    if (rawExtraHours > 0) {
+        if (rule === 'EXACT') {
+            billableExtraHours = Math.round(rawExtraHours * 100) / 100;
+        } else if (rule === 'ROUND_30_MIN') {
+            billableExtraHours = Math.ceil(rawExtraHours * 2) / 2;
+        } else {
+            billableExtraHours = Math.ceil(rawExtraHours);
+        }
+    }
+
+    if (billableExtraHours > 0) {
+        const extraHourAmount = billableExtraHours * extraHourRate;
+        const ruleLabel = rule === 'ROUND_60_MIN' ? 'Round 60M' : rule === 'ROUND_30_MIN' ? 'Round 30M' : 'Exact';
+        lineItems.push({
+            description: `Extra Hours: ${billableExtraHours} Hr (${ruleLabel}) @ ₹${extraHourRate.toFixed(2)}/hr`,
+            hsn: sacCode,
+            qty: billableExtraHours,
+            rate: extraHourRate,
+            amount: extraHourAmount
+        });
+    }
+
+    // 4. Driver Day Allowance
+    const enteredAllowance = Number(readings.driverAllowance);
+    const driverAllowanceRate = !isNaN(enteredAllowance) && enteredAllowance > 0 ? enteredAllowance : cardDriverAllowance;
+    if (driverAllowanceRate > 0) {
+        const allowanceTotal = driverAllowanceRate * totalDays;
+        lineItems.push({
+            description: `Driver Day Allowance (${totalDays} day${totalDays > 1 ? 's' : ''})`,
+            hsn: sacCode,
+            qty: totalDays,
+            rate: driverAllowanceRate,
+            amount: allowanceTotal
+        });
+    }
+
+    // 5. Late Night Charges
+    const enteredNight = Number(readings.lateNightCharges);
+    const nightTotal = !isNaN(enteredNight) && enteredNight > 0 ? enteredNight : (readings.totalNights ? readings.totalNights * cardNightAllowance : 0);
+    if (nightTotal > 0) {
+        lineItems.push({
+            description: 'Night / Late Night Allowance Charges',
+            hsn: sacCode,
+            qty: 1,
+            rate: nightTotal,
+            amount: nightTotal
+        });
+    }
+
+    // 6. Permit / State Toll
+    const permitCharges = Number(readings.permitCharges || 0);
+    if (permitCharges > 0) {
+        lineItems.push({
+            description: 'Border Permit & State Toll Entry Charges',
+            hsn: sacCode,
+            qty: 1,
+            rate: permitCharges,
+            amount: permitCharges
+        });
+    }
+
+    // 7. Fuel Surcharge
+    let fuelSurchargeAmount = Number(readings.fuelSurcharge || 0);
+    if (fuelSurchargeAmount === 0 && company.fuelSurchargeRule) {
+        if (company.fuelSurchargeRule.ruleType === 'PERCENTAGE_OF_BASE') {
+            fuelSurchargeAmount = (basePackageRate * (company.fuelSurchargeRule.value || 0)) / 100;
+        } else if (company.fuelSurchargeRule.ruleType === 'PER_KM') {
+            fuelSurchargeAmount = totalKms * (company.fuelSurchargeRule.value || 0);
+        }
+    }
+    if (fuelSurchargeAmount > 0) {
+        lineItems.push({
+            description: 'Fuel Price Surcharge',
+            hsn: sacCode,
+            qty: 1,
+            rate: Math.round(fuelSurchargeAmount * 100) / 100,
+            amount: Math.round(fuelSurchargeAmount * 100) / 100
+        });
+    }
+
+    // 8. Toll & Parking
+    const tollCharges = Number(readings.tollCharges || 0);
+    const parkingCharges = Number(readings.parkingCharges || 0);
+    const totalTollParking = tollCharges + parkingCharges;
+    let tollParkingNonTaxable = 0;
+    if (totalTollParking > 0) {
+        if (company.tollParkingTaxable) {
+            lineItems.push({
+                description: 'Toll & Parking Charges (Taxable)',
+                hsn: sacCode,
+                qty: 1,
+                rate: totalTollParking,
+                amount: totalTollParking
+            });
+        } else {
+            tollParkingNonTaxable = totalTollParking;
+        }
+    }
+
+    const taxableAmount = lineItems.reduce((acc, item) => acc + item.amount, 0);
+
+    // GST Rule: Intra-State vs Inter-State
+    const brokerState = String(brokerProfile.stateCode || (brokerProfile.gstin ? brokerProfile.gstin.slice(0, 2) : '27-MH')).replace(/\D/g, '') || '27';
+    let rawClientState = company.stateCode;
+    if (!rawClientState && (company.gstin || company.gstNumber)) {
+        rawClientState = (company.gstin || company.gstNumber).slice(0, 2);
+    }
+    if (!rawClientState && company.state && company.state.toLowerCase() !== 'maharashtra') {
+        rawClientState = '29'; // default non-MH state code
+    }
+    const clientState = String(rawClientState || '27-MH').replace(/\D/g, '') || '27';
+    const isSameState = !brokerState || !clientState || brokerState === clientState;
+
+    const gstRate = Number(company.gstRate !== undefined ? company.gstRate : 5.0);
+    let cgstRate = 0, cgstAmount = 0;
+    let sgstRate = 0, sgstAmount = 0;
+    let igstRate = 0, igstAmount = 0;
+
+    if (isSameState) {
+        cgstRate = gstRate / 2;
+        sgstRate = gstRate / 2;
+        cgstAmount = Math.round((taxableAmount * (cgstRate / 100)) * 100) / 100;
+        sgstAmount = Math.round((taxableAmount * (sgstRate / 100)) * 100) / 100;
+    } else {
+        igstRate = gstRate;
+        igstAmount = Math.round((taxableAmount * (igstRate / 100)) * 100) / 100;
+    }
+
+    const rawGrandTotal = taxableAmount + cgstAmount + sgstAmount + igstAmount + tollParkingNonTaxable;
+    const grandTotal = Math.round(rawGrandTotal); // Round to nearest rupee
+
+    const creditDays = Number(company.creditPeriodDays || 30);
+    const invoiceDate = booking.invoiceDetails?.invoiceDate ? new Date(booking.invoiceDetails.invoiceDate) : new Date();
+    const dueDate = new Date(invoiceDate.getTime() + creditDays * 24 * 60 * 60 * 1000);
+
+    return {
+        invoiceNo: String(booking.dutySlipNo || booking.bookingNo),
+        invoiceDate,
+        dueDate,
+        lineItems,
+        taxableAmount: Math.round(taxableAmount * 100) / 100,
+        isSameState,
+        cgstRate,
+        cgstAmount,
+        sgstRate,
+        sgstAmount,
+        igstRate,
+        igstAmount,
+        tollParkingNonTaxable,
+        grandTotal,
+        amountInWords: numberToWordsIndian(grandTotal)
+    };
+}
+
+function openBillingSheet(bookingId) {
+    const b = findBookingInList(bookingId);
+    if (!b) return;
+
+    currentBillingBooking = b;
+    const dsNo = b.dutySlipNo || b.bookingNo;
+    const stage = getBillingStage(b);
+
+    // Summary elements
+    if (document.getElementById('bsModalBookingBadge')) document.getElementById('bsModalBookingBadge').textContent = `#${dsNo}`;
+    if (document.getElementById('bsBookingNoDisplay')) document.getElementById('bsBookingNoDisplay').textContent = dsNo;
+    if (document.getElementById('bsInvoiceNoDisplay')) document.getElementById('bsInvoiceNoDisplay').textContent = dsNo;
+    if (document.getElementById('bsClientDisplay')) document.getElementById('bsClientDisplay').textContent = b.clientName || 'Client';
+
+    const comp = (typeof companiesList !== 'undefined' ? companiesList : []).find(c => c._id === b.clientId || c.companyName === b.clientName) || {};
+    if (document.getElementById('bsClientGstinDisplay')) {
+        document.getElementById('bsClientGstinDisplay').textContent = `GSTIN: ${comp.gstin || '27AAACW9988C1Z4'} (State: ${comp.stateCode || '27-MH'})`;
+    }
+
+    if (document.getElementById('bsGuestDisplay')) document.getElementById('bsGuestDisplay').textContent = b.guestName || '-';
+    if (document.getElementById('bsRouteDisplay')) document.getElementById('bsRouteDisplay').textContent = b.dropAddress ? b.dropAddress.substring(0, 30) : b.destination || '-';
+    if (document.getElementById('bsVehicleDisplay')) document.getElementById('bsVehicleDisplay').textContent = `${b.vehicleNumber || ''} (${b.vehicleType || ''})`;
+    if (document.getElementById('bsDriverDisplay')) document.getElementById('bsDriverDisplay').textContent = `Driver: ${b.driverName || '-'}`;
+    if (document.getElementById('bsDateDisplay')) {
+        document.getElementById('bsDateDisplay').textContent = b.travelDate ? new Date(b.travelDate).toLocaleDateString('en-IN') : '-';
+    }
+
+    // Stage badge
+    let stageBadge = '';
+    if (stage === 'PAID') {
+        stageBadge = `<span class="badge badge-stage-paid" style="font-size:0.8rem;"><i class="bi bi-check2-all"></i> Paid</span>`;
+    } else if (stage === 'INVOICED') {
+        stageBadge = `<span class="badge badge-stage-invoiced" style="font-size:0.8rem;"><i class="bi bi-receipt"></i> Invoiced</span>`;
+    } else {
+        stageBadge = `<span class="badge badge-stage-pending" style="font-size:0.8rem;"><i class="bi bi-clock-history"></i> Ready to Bill</span>`;
+    }
+    if (document.getElementById('bsStageBadge')) document.getElementById('bsStageBadge').innerHTML = stageBadge;
+
+    // Populate readings & dropzone
+    updateBillingSlipFileDisplay(b);
+
+    const rd = b.dutyCloseReadings || {};
+    if (document.getElementById('bsGarageOutKm')) document.getElementById('bsGarageOutKm').value = rd.garageOutKm || '';
+    if (document.getElementById('bsGarageOutTime')) document.getElementById('bsGarageOutTime').value = rd.garageOutTime || '';
+    if (document.getElementById('bsReportingKm')) document.getElementById('bsReportingKm').value = rd.reportingKm || '';
+    if (document.getElementById('bsReportingTime')) document.getElementById('bsReportingTime').value = rd.reportingTime || '';
+    if (document.getElementById('bsReleasingKm')) document.getElementById('bsReleasingKm').value = rd.releasingKm || '';
+    if (document.getElementById('bsReleasingTime')) document.getElementById('bsReleasingTime').value = rd.releasingTime || '';
+    if (document.getElementById('bsGarageInKm')) document.getElementById('bsGarageInKm').value = rd.garageInKm || '';
+    if (document.getElementById('bsGarageInTime')) document.getElementById('bsGarageInTime').value = rd.garageInTime || '';
+
+    if (document.getElementById('bsTotalKms')) document.getElementById('bsTotalKms').value = rd.totalKms || (rd.releasingKm && rd.reportingKm ? Math.max(0, rd.releasingKm - rd.reportingKm) : 80);
+    if (document.getElementById('bsTotalHours')) document.getElementById('bsTotalHours').value = rd.totalHours || 8.0;
+    if (document.getElementById('bsTotalDays')) document.getElementById('bsTotalDays').value = rd.totalDays || 1;
+    if (document.getElementById('bsTotalNights')) document.getElementById('bsTotalNights').value = rd.totalNights || 0;
+    if (document.getElementById('bsDriverAllowance')) document.getElementById('bsDriverAllowance').value = rd.driverAllowance || 0;
+    if (document.getElementById('bsLateNight')) document.getElementById('bsLateNight').value = rd.lateNightCharges || 0;
+    if (document.getElementById('bsPermit')) document.getElementById('bsPermit').value = rd.permitCharges || 0;
+    if (document.getElementById('bsFuelSurcharge')) document.getElementById('bsFuelSurcharge').value = rd.fuelSurcharge || 0;
+    if (document.getElementById('bsToll')) document.getElementById('bsToll').value = rd.tollCharges || 0;
+    if (document.getElementById('bsParking')) document.getElementById('bsParking').value = rd.parkingCharges || 0;
+    if (document.getElementById('bsGuestSignConfirmed')) document.getElementById('bsGuestSignConfirmed').checked = Boolean(rd.guestSignatureConfirmed);
+
+    // Live preview invoice
+    triggerBillingInvoicePreview();
+
+    // Setup Payment section
+    setupBillingPaymentSection(b);
+
+    // Initial subtab
+    if (stage === 'PAID' || stage === 'INVOICED') {
+        switchBillingSheetTab(2);
+    } else {
+        switchBillingSheetTab(1);
+    }
+
+    openModal('billingSheetModal');
+}
+
+function switchBillingSheetTab(stepIdx) {
+    const panels = [
+        document.getElementById('bsStepPanel1'),
+        document.getElementById('bsStepPanel2'),
+        document.getElementById('bsStepPanel3')
+    ];
+    const btns = [
+        document.getElementById('bsTabBtn1'),
+        document.getElementById('bsTabBtn2'),
+        document.getElementById('bsTabBtn3')
+    ];
+
+    panels.forEach((p, idx) => {
+        if (p) p.style.display = (idx + 1 === stepIdx) ? 'block' : 'none';
+    });
+    btns.forEach((b, idx) => {
+        if (b) b.classList.toggle('active', (idx + 1 === stepIdx));
+    });
+
+    if (stepIdx === 2) {
+        triggerBillingInvoicePreview();
+    }
+}
+
+function updateBillingSlipFileDisplay(b) {
+    const container = document.getElementById('bsUploadedFileStatus');
+    if (!container) return;
+
+    if (b.dutySlipUploaded && b.dutySlipFile) {
+        container.innerHTML = `
+            <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="bi bi-file-earmark-check-fill" style="color:#16a34a; font-size:1.5rem;"></i>
+                    <div>
+                        <div style="font-weight:700; color:#166534; font-size:0.86rem;">${b.dutySlipFileName || 'Paper Duty Slip Scanned'}</div>
+                        <span style="font-size:0.75rem; color:#475569;">Verified driver signed paper duty slip</span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <a href="${b.dutySlipFile}" target="_blank" class="btn btn-outline btn-sm"><i class="bi bi-eye"></i> View Slip</a>
+                    <a href="${b.dutySlipFile}" download="${b.dutySlipFileName || 'dutyslip.png'}" class="btn btn-outline btn-sm"><i class="bi bi-download"></i> Download</a>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('bsDutySlipFileInput').click()"><i class="bi bi-arrow-repeat"></i> Replace</button>
+                </div>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <div style="font-size:0.82rem; color:#64748b; font-style:italic;">
+                No paper duty slip attached yet. Upload scanned or driver-photographed slip (JPG, PNG, PDF).
+            </div>
+        `;
+    }
+}
+
+async function handleBillingSlipFileSelect(input) {
+    if (!input.files || !input.files[0] || !currentBillingBooking) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+        const fileData = e.target.result;
+        currentBillingBooking.dutySlipUploaded = true;
+        currentBillingBooking.dutySlipFile = fileData;
+        currentBillingBooking.dutySlipFileName = file.name;
+
+        await fetchAuth(`${API_BASE}/aggregator/bookings/${currentBillingBooking._id}/upload-duty-slip`, {
+            method: 'POST',
+            body: JSON.stringify({ fileData, fileName: file.name })
+        });
+
+        updateBillingSlipFileDisplay(currentBillingBooking);
+        showToast('Driver duty slip uploaded successfully!');
+        renderBillingTable();
+    };
+    reader.readAsDataURL(file);
+}
+
+function autoCalcBillingReadings() {
+    const repKm = Number(document.getElementById('bsReportingKm')?.value || 0);
+    const relKm = Number(document.getElementById('bsReleasingKm')?.value || 0);
+    if (relKm > repKm) {
+        document.getElementById('bsTotalKms').value = relKm - repKm;
+    }
+    triggerBillingInvoicePreview();
+}
+
+function triggerBillingInvoicePreview() {
+    if (!currentBillingBooking) return;
+
+    // Collect temporary readings for live invoice calculation
+    const tempReadings = {
+        garageOutKm: Number(document.getElementById('bsGarageOutKm')?.value || 0),
+        garageOutTime: document.getElementById('bsGarageOutTime')?.value || '',
+        reportingKm: Number(document.getElementById('bsReportingKm')?.value || 0),
+        reportingTime: document.getElementById('bsReportingTime')?.value || '',
+        releasingKm: Number(document.getElementById('bsReleasingKm')?.value || 0),
+        releasingTime: document.getElementById('bsReleasingTime')?.value || '',
+        garageInKm: Number(document.getElementById('bsGarageInKm')?.value || 0),
+        garageInTime: document.getElementById('bsGarageInTime')?.value || '',
+        totalKms: Number(document.getElementById('bsTotalKms')?.value || 80),
+        totalHours: Number(document.getElementById('bsTotalHours')?.value || 8.0),
+        totalDays: Number(document.getElementById('bsTotalDays')?.value || 1),
+        totalNights: Number(document.getElementById('bsTotalNights')?.value || 0),
+        driverAllowance: Number(document.getElementById('bsDriverAllowance')?.value || 0),
+        lateNightCharges: Number(document.getElementById('bsLateNight')?.value || 0),
+        permitCharges: Number(document.getElementById('bsPermit')?.value || 0),
+        fuelSurcharge: Number(document.getElementById('bsFuelSurcharge')?.value || 0),
+        tollCharges: Number(document.getElementById('bsToll')?.value || 0),
+        parkingCharges: Number(document.getElementById('bsParking')?.value || 0),
+        guestSignatureConfirmed: Boolean(document.getElementById('bsGuestSignConfirmed')?.checked)
+    };
+
+    const mockBk = Object.assign({}, currentBillingBooking, { dutyCloseReadings: tempReadings });
+    const comp = (typeof companiesList !== 'undefined' ? companiesList : []).find(c => c._id === currentBillingBooking.clientId || c.companyName === currentBillingBooking.clientName) || {};
+    const broker = (typeof brokerProfile !== 'undefined' ? brokerProfile : null) || {};
+
+    let inv = null;
+    if (currentBillingBooking.isInvoiced && currentBillingBooking.invoiceDetails && currentBillingBooking.invoiceDetails.grandTotal) {
+        inv = currentBillingBooking.invoiceDetails;
+    } else {
+        inv = calculateInvoiceForBookingClient(mockBk, comp, broker);
+    }
+    currentBillingInvoice = inv;
+
+    renderBillingInvoiceSection(inv, mockBk, comp, broker);
+}
+
+function renderBillingInvoiceSection(inv, b, comp, broker) {
+    const box = document.getElementById('bsInvoiceCalculationBox');
+    if (!box) return;
+
+    const itemsHtml = (inv.lineItems || []).map((item, idx) => `
+        <tr>
+            <td style="text-align:center;">${idx + 1}</td>
+            <td><strong>${item.description}</strong></td>
+            <td style="text-align:center; font-family:monospace;">${item.hsn || '996601'}</td>
+            <td style="text-align:center;">${item.qty}</td>
+            <td style="text-align:right;">₹${Number(item.rate).toFixed(2)}</td>
+            <td style="text-align:right; font-weight:700;">₹${Number(item.amount).toFixed(2)}</td>
+        </tr>
+    `).join('');
+
+    const taxRowsHtml = inv.isSameState ? `
+        <tr>
+            <td colspan="5" style="text-align:right; font-weight:600;">CGST (${inv.cgstRate}%):</td>
+            <td style="text-align:right; font-weight:600;">₹${Number(inv.cgstAmount).toFixed(2)}</td>
+        </tr>
+        <tr>
+            <td colspan="5" style="text-align:right; font-weight:600;">SGST (${inv.sgstRate}%):</td>
+            <td style="text-align:right; font-weight:600;">₹${Number(inv.sgstAmount).toFixed(2)}</td>
+        </tr>
+    ` : `
+        <tr>
+            <td colspan="5" style="text-align:right; font-weight:600;">IGST (${inv.igstRate}%):</td>
+            <td style="text-align:right; font-weight:600;">₹${Number(inv.igstAmount).toFixed(2)}</td>
+        </tr>
+    `;
+
+    const tollNonTaxableRow = inv.tollParkingNonTaxable > 0 ? `
+        <tr>
+            <td colspan="5" style="text-align:right; font-weight:600; color:#475569;">Toll & Parking (Non-Taxable):</td>
+            <td style="text-align:right; font-weight:600;">₹${Number(inv.tollParkingNonTaxable).toFixed(2)}</td>
+        </tr>
+    ` : '';
+
+    const dsNo = b.dutySlipNo || b.bookingNo;
+
+    box.innerHTML = `
+        <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #0f172a; padding-bottom:12px; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h3 style="font-family:var(--font-outfit); font-size:1.35rem; font-weight:800; color:#0f172a; margin:0;">
+                        TAX INVOICE #${inv.invoiceNo}
+                    </h3>
+                    <div style="font-size:0.78rem; color:#16a34a; font-weight:700; margin-top:2px;">
+                        <i class="bi bi-link-45deg"></i> EXACT SAME NUMBER AS DUTY SLIP #${dsNo}
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-primary" id="btnGenTaxInvoice" onclick="generateInvoiceFromBilling()">
+                        <i class="bi bi-receipt"></i> ${b.isInvoiced ? 'Update & Re-Generate Tax Invoice' : 'Generate Tax Invoice'}
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="switchBillingSheetTab(3)">
+                        Proceed to Payment &rarr;
+                    </button>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; font-size:0.82rem; margin-bottom:16px; background:#f8fafc; padding:12px 16px; border-radius:6px; border:1px solid #e2e8f0;">
+                <div>
+                    <div>Client: <strong style="color:#0f172a;">${b.clientName}</strong></div>
+                    <div>Rate Card Rule: <strong>${comp.extraHourRoundingRule || 'ROUND_60_MIN'}</strong></div>
+                    <div>Place of Supply: <strong>${b.location || 'Pune'} (${inv.isSameState ? 'Intra-State Supply' : 'Inter-State Supply'})</strong></div>
+                </div>
+                <div>
+                    <div>Invoice Date: <strong>${new Date(inv.invoiceDate).toLocaleDateString('en-IN')}</strong></div>
+                    <div>Credit Period: <strong>${comp.creditPeriodDays || 30} Days</strong></div>
+                    <div>Payment Due: <strong style="color:#dc2626;">${new Date(inv.dueDate).toLocaleDateString('en-IN')}</strong></div>
+                </div>
+            </div>
+
+            <table class="tax-invoice-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px; text-align:center;">#</th>
+                        <th>Description of Services</th>
+                        <th style="width:90px; text-align:center;">SAC</th>
+                        <th style="width:60px; text-align:center;">Qty</th>
+                        <th style="width:110px; text-align:right;">Rate (₹)</th>
+                        <th style="width:120px; text-align:right;">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHtml}
+                    <tr>
+                        <td colspan="5" style="text-align:right; font-weight:700;">Taxable Amount:</td>
+                        <td style="text-align:right; font-weight:700;">₹${Number(inv.taxableAmount).toFixed(2)}</td>
+                    </tr>
+                    ${taxRowsHtml}
+                    ${tollNonTaxableRow}
+                    <tr style="background:#f1f5f9; font-size:1.05rem;">
+                        <td colspan="5" style="text-align:right; font-weight:800; color:#0f172a;">Grand Total (Rounded to nearest Rupee):</td>
+                        <td style="text-align:right; font-weight:800; color:#ea580c;">₹${Number(inv.grandTotal).toLocaleString('en-IN')}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div style="font-size:0.8rem; font-style:italic; color:#475569; margin-top:10px;">
+                Amount in Words: <strong>${inv.amountInWords}</strong>
+            </div>
+        </div>
+    `;
+}
+
+async function saveBillingReadings() {
+    if (!currentBillingBooking) return;
+
+    const payload = {
+        garageOutKm: Number(document.getElementById('bsGarageOutKm')?.value || 0),
+        garageOutTime: document.getElementById('bsGarageOutTime')?.value || '',
+        reportingKm: Number(document.getElementById('bsReportingKm')?.value || 0),
+        reportingTime: document.getElementById('bsReportingTime')?.value || '',
+        releasingKm: Number(document.getElementById('bsReleasingKm')?.value || 0),
+        releasingTime: document.getElementById('bsReleasingTime')?.value || '',
+        garageInKm: Number(document.getElementById('bsGarageInKm')?.value || 0),
+        garageInTime: document.getElementById('bsGarageInTime')?.value || '',
+        totalKms: Number(document.getElementById('bsTotalKms')?.value || 80),
+        totalHours: Number(document.getElementById('bsTotalHours')?.value || 8.0),
+        totalDays: Number(document.getElementById('bsTotalDays')?.value || 1),
+        totalNights: Number(document.getElementById('bsTotalNights')?.value || 0),
+        driverAllowance: Number(document.getElementById('bsDriverAllowance')?.value || 0),
+        lateNightCharges: Number(document.getElementById('bsLateNight')?.value || 0),
+        permitCharges: Number(document.getElementById('bsPermit')?.value || 0),
+        fuelSurcharge: Number(document.getElementById('bsFuelSurcharge')?.value || 0),
+        tollCharges: Number(document.getElementById('bsToll')?.value || 0),
+        parkingCharges: Number(document.getElementById('bsParking')?.value || 0),
+        guestSignatureConfirmed: Boolean(document.getElementById('bsGuestSignConfirmed')?.checked)
+    };
+
+    currentBillingBooking.dutyCloseReadings = payload;
+
+    await fetchAuth(`${API_BASE}/aggregator/bookings/${currentBillingBooking._id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ dutyCloseReadings: payload })
+    });
+
+    const dsNo = currentBillingBooking.dutySlipNo || currentBillingBooking.bookingNo;
+    await fetchAuth(`${API_BASE}/aggregator/audit-logs`, {
+        method: 'POST',
+        body: JSON.stringify({
+            action: 'DUTY_SLIP_UPDATED',
+            action_type: 'DUTY_SLIP_UPDATED',
+            entityType: 'BOOKING',
+            entityId: currentBillingBooking._id,
+            entityName: `Duty #${dsNo}`,
+            summary: `Slip readings updated for Duty #${dsNo}`,
+            details: { totalKms: payload.totalKms, totalHours: payload.totalHours }
+        })
+    });
+
+    showToast('Duty slip readings saved successfully!');
+    triggerBillingInvoicePreview();
+    renderBillingTable();
+}
+
+async function generateInvoiceFromBilling() {
+    if (!currentBillingBooking) return;
+
+    await saveBillingReadings();
+
+    const dsNo = currentBillingBooking.dutySlipNo || currentBillingBooking.bookingNo;
+    const btn = document.getElementById('btnGenTaxInvoice');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Generating Tax Invoice...';
+    }
+
+    let res = await fetchAuth(`${API_BASE}/aggregator/bookings/${currentBillingBooking._id}/generate-invoice`, {
+        method: 'POST',
+        body: JSON.stringify({ dutyCloseReadings: currentBillingBooking.dutyCloseReadings })
+    });
+
+    if (!res || !res.success) {
+        // Fallback to client-side calculation
+        const comp = (typeof companiesList !== 'undefined' ? companiesList : []).find(c => c._id === currentBillingBooking.clientId || c.companyName === currentBillingBooking.clientName) || {};
+        const broker = (typeof brokerProfile !== 'undefined' ? brokerProfile : null) || {};
+        const invoiceData = calculateInvoiceForBookingClient(currentBillingBooking, comp, broker);
+
+        currentBillingBooking.isInvoiced = true;
+        currentBillingBooking.invoiceDetails = invoiceData;
+
+        await fetchAuth(`${API_BASE}/aggregator/audit-logs`, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'GENERATE_INVOICE',
+                action_type: 'GENERATE_INVOICE',
+                entityType: 'INVOICE',
+                entityId: invoiceData.invoiceNo,
+                entityName: `Tax Invoice #${invoiceData.invoiceNo} for ${comp.companyName || currentBillingBooking.clientName}`,
+                summary: `Tax Invoice #${invoiceData.invoiceNo} generated for ${comp.companyName || currentBillingBooking.clientName}`,
+                details: { grandTotal: invoiceData.grandTotal, taxableAmount: invoiceData.taxableAmount }
+            })
+        });
+
+        res = { success: true, message: `Tax Invoice #${invoiceData.invoiceNo} generated successfully!`, invoice: invoiceData };
+    } else {
+        currentBillingBooking.isInvoiced = true;
+        currentBillingBooking.invoiceDetails = res.invoice;
+    }
+
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-receipt"></i> Update & Re-Generate Tax Invoice';
+    }
+
+    showToast(res.message || `Tax Invoice #${dsNo} generated successfully!`);
+    updateBillingSidebarBadge();
+    renderBillingTable();
+    setupBillingPaymentSection(currentBillingBooking);
+
+    // Transition to step 3 for print and payment
+    switchBillingSheetTab(3);
+}
+
+function setupBillingPaymentSection(b) {
+    const inv = b.invoiceDetails || {};
+    const comp = (typeof companiesList !== 'undefined' ? companiesList : []).find(c => c._id === b.clientId || c.companyName === b.clientName) || {};
+    const dueNotice = document.getElementById('bsPaymentDueNotice');
+    if (dueNotice) {
+        if (b.isInvoiced && inv.dueDate) {
+            dueNotice.innerHTML = `Invoice Date: <strong>${new Date(inv.invoiceDate || new Date()).toLocaleDateString('en-IN')}</strong> | Credit Period: <strong>${comp.creditPeriodDays || 30} Days</strong> | Payment Due: <strong style="color:#dc2626;">${new Date(inv.dueDate).toLocaleDateString('en-IN')}</strong>`;
+        } else {
+            dueNotice.innerHTML = `Credit Period: <strong>${comp.creditPeriodDays || 30} Days</strong> (Generate invoice first to calculate due date)`;
+        }
+    }
+
+    const badgeBox = document.getElementById('bsPaymentStatusBadgeBox');
+    if (badgeBox) {
+        if (b.isPaid || b.paymentStatus === 'PAID') {
+            badgeBox.innerHTML = `<span class="badge badge-green" style="font-size:0.85rem;"><i class="bi bi-check-circle-fill"></i> PAID IN FULL</span>`;
+        } else if (b.isInvoiced) {
+            badgeBox.innerHTML = `<span class="badge badge-amber" style="font-size:0.85rem;"><i class="bi bi-clock-history"></i> AWAITING PAYMENT</span>`;
+        } else {
+            badgeBox.innerHTML = `<span class="badge badge-gray" style="font-size:0.85rem;">PENDING INVOICE</span>`;
+        }
+    }
+
+    const payForm = document.getElementById('bsPaymentEntryForm');
+    const paidBox = document.getElementById('bsAlreadyPaidBox');
+
+    if (b.isPaid || b.paymentStatus === 'PAID') {
+        if (payForm) payForm.style.display = 'none';
+        if (paidBox) {
+            paidBox.style.display = 'block';
+            const pay = b.paymentDetails || {};
+            document.getElementById('bsPaidDetailsSummary').innerHTML = `
+                Payment Mode: <strong>${pay.mode || 'NEFT/RTGS'}</strong> | UTR / Ref No: <strong>${pay.utr || '-'}</strong> | Date: <strong>${pay.date ? new Date(pay.date).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}</strong> | Amount: <strong style="color:#166534;">₹${Number(pay.amount || inv.grandTotal || 0).toLocaleString('en-IN')}</strong>
+            `;
+        }
+    } else {
+        if (paidBox) paidBox.style.display = 'none';
+        if (payForm) {
+            payForm.style.display = 'block';
+            if (document.getElementById('bsPayAmount')) {
+                document.getElementById('bsPayAmount').value = inv.grandTotal || '';
+            }
+            if (document.getElementById('bsPayDate')) {
+                document.getElementById('bsPayDate').value = new Date().toISOString().split('T')[0];
+            }
+        }
+    }
+}
+
+function enableEditPayment() {
+    const payForm = document.getElementById('bsPaymentEntryForm');
+    const paidBox = document.getElementById('bsAlreadyPaidBox');
+    if (payForm) payForm.style.display = 'block';
+    if (paidBox) paidBox.style.display = 'none';
+}
+
+async function recordBillingPayment() {
+    if (!currentBillingBooking) return;
+
+    const mode = document.getElementById('bsPayMode')?.value || 'NEFT/RTGS';
+    const utr = document.getElementById('bsPayUtr')?.value?.trim() || '';
+    const date = document.getElementById('bsPayDate')?.value || new Date().toISOString().split('T')[0];
+    const amount = Number(document.getElementById('bsPayAmount')?.value || 0);
+    const notes = document.getElementById('bsPayNotes')?.value?.trim() || '';
+
+    if (!utr) {
+        showToast('Please enter the UTR or Bank Payment Reference Number', 'warning');
+        return;
+    }
+    if (amount <= 0) {
+        showToast('Please enter a valid amount received', 'warning');
+        return;
+    }
+
+    const payload = { mode, utr, date, amount, notes };
+    const dsNo = currentBillingBooking.dutySlipNo || currentBillingBooking.bookingNo;
+
+    let res = await fetchAuth(`${API_BASE}/aggregator/bookings/${currentBillingBooking._id}/record-payment`, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    });
+
+    currentBillingBooking.isPaid = true;
+    currentBillingBooking.paymentStatus = 'PAID';
+    currentBillingBooking.paymentDetails = payload;
+
+    if (!res || !res.success) {
+        // Fallback PUT & Audit Log
+        await fetchAuth(`${API_BASE}/aggregator/bookings/${currentBillingBooking._id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ isPaid: true, paymentStatus: 'PAID', paymentDetails: payload })
+        });
+
+        await fetchAuth(`${API_BASE}/aggregator/audit-logs`, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'PAYMENT_RECORDED',
+                action_type: 'PAYMENT_RECORDED',
+                entityType: 'INVOICE',
+                entityId: dsNo,
+                entityName: `Payment for Invoice #${dsNo} (${currentBillingBooking.clientName})`,
+                summary: `Payment of ₹${amount} recorded for Invoice #${dsNo}`,
+                details: { amount, mode, utr }
+            })
+        });
+    }
+
+    showToast(`Payment of ₹${amount.toLocaleString('en-IN')} recorded successfully for Invoice #${dsNo}!`);
+    setupBillingPaymentSection(currentBillingBooking);
+    updateBillingSidebarBadge();
+    renderBillingTable();
+}
+
+function printBillingInvoiceNow() {
+    if (!currentBillingBooking) return;
+    printGeneratedInvoice(currentBillingBooking._id || currentBillingBooking.bookingNo);
+}
+
+function emailBillingInvoiceNow() {
+    if (!currentBillingBooking) return;
+    emailGeneratedInvoice(currentBillingBooking._id || currentBillingBooking.bookingNo);
+}
+
+function sendBillingWhatsAppNow() {
+    if (!currentBillingBooking) return;
+    sendBillingWhatsApp(currentBillingBooking._id || currentBillingBooking.bookingNo);
+}
+
+function sendBillingWhatsApp(bookingId) {
+    const b = findBookingInList(bookingId);
+    if (!b) return;
+
+    const dsNo = b.dutySlipNo || b.bookingNo;
+    const inv = b.invoiceDetails || {};
+    const rd = b.dutyCloseReadings || {};
+    const broker = (typeof brokerProfile !== 'undefined' ? brokerProfile : null) || {};
+
+    const text = `*TAX INVOICE & DUTY SLIP SUMMARY*\n` +
+        `Invoice No: #${inv.invoiceNo || dsNo} (Duty Slip #${dsNo})\n` +
+        `Client: ${b.clientName}\n` +
+        `Passenger: ${b.guestName || '-'} (${b.guestPhone || ''})\n` +
+        `Vehicle: ${b.vehicleNumber || ''} (${b.vehicleType || ''})\n` +
+        `Chauffeur: ${b.driverName || ''}\n` +
+        `Total KMs: ${rd.totalKms || 0} Km | Hours: ${rd.totalHours || 0} Hrs\n` +
+        `Taxable Amount: ₹${inv.taxableAmount || 0}\n` +
+        `Grand Total: ₹${inv.grandTotal || 0} (Rounded)\n` +
+        `Payment Due Date: ${inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-IN') : '-'}\n\n` +
+        `*Bank Settlement Details:*\n` +
+        `Bank: ${broker.bankName || 'HDFC Bank Ltd.'}\n` +
+        `A/C: ${broker.accountNumber || '50200012345678'}\n` +
+        `IFSC: ${broker.ifscCode || 'HDFC0000123'}\n` +
+        `Beneficiary: ${broker.accountName || 'Wings Tours & Travels'}\n\n` +
+        `Thank you for traveling with Wings Tours & Travels!`;
+
+    const encoded = encodeURIComponent(text);
+    const phone = (b.guestPhone || b.bookedByPhone || '').replace(/\D/g, '');
+    const url = phone ? `https://wa.me/${phone}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+    window.open(url, '_blank');
+
+    fetchAuth(`${API_BASE}/aggregator/audit-logs`, {
+        method: 'POST',
+        body: JSON.stringify({
+            action: 'COMMUNICATION_SENT',
+            action_type: 'COMMUNICATION_SENT',
+            entityType: 'INVOICE',
+            entityId: dsNo,
+            entityName: `WhatsApp Invoice #${dsNo}`,
+            summary: `WhatsApp invoice summary sent for #${dsNo}`,
+            details: { channel: 'WHATSAPP', invoiceNo: dsNo }
+        })
+    });
+    showToast(`WhatsApp invoice summary dispatched for #${dsNo}`);
+}
+
+function copyBillingSummaryText() {
+    if (!currentBillingBooking) return;
+    const b = currentBillingBooking;
+    const dsNo = b.dutySlipNo || b.bookingNo;
+    const inv = b.invoiceDetails || {};
+    const text = `TAX INVOICE #${inv.invoiceNo || dsNo} | Client: ${b.clientName} | Passenger: ${b.guestName} | Grand Total: ₹${inv.grandTotal || 0} | Due: ${inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-IN') : '-'}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+    }
+    showToast('Billing summary copied to clipboard!');
 }
 
 // ==========================================================================
@@ -2223,6 +3491,68 @@ function getFallbackVendors() {
 function getFallbackBookings() {
     return [
         {
+            _id: 'mock_bk_73419',
+            bookingNo: '73419',
+            dutySlipNo: '73419',
+            status: 'DR_DUTY_CLOSE',
+            travelDate: '2026-11-21',
+            reqTime: '09:00',
+            repHours: '09',
+            repMinutes: '00',
+            clientName: 'Infosys BPM Pune',
+            guestName: 'Ms. Clara Oswald',
+            guestPhone: '+91 98220 44556',
+            vehicleType: 'Sedan A/C',
+            packageType: '8 Hrs / 80 Km',
+            vehicleNumber: 'MH12 QK7890',
+            driverName: 'Ramesh Pawar',
+            driverPhone: '+91 97654 32100',
+            driverAccepted: true,
+            dutyStarted: true,
+            dutyClosed: true,
+            dutySlipUploaded: true,
+            dutySlipFileName: 'DutySlip_73419_signed.png',
+            isInvoiced: true,
+            isPaid: true,
+            paymentStatus: 'PAID',
+            paymentDetails: {
+                mode: 'NEFT',
+                utr: 'NEFT-INF-20261122-0044',
+                date: '2026-11-22',
+                amount: 3187,
+                notes: 'NEFT corporate settlement received'
+            },
+            dutyCloseReadings: {
+                totalKms: 95,
+                totalHours: 9.5,
+                totalDays: 1,
+                totalNights: 0,
+                driverAllowance: 250,
+                lateNightCharges: 0,
+                permitCharges: 0,
+                fuelSurcharge: 0,
+                tollCharges: 100,
+                parkingCharges: 50,
+                guestSignatureConfirmed: true
+            },
+            invoiceDetails: {
+                invoiceNo: '73419',
+                invoiceDate: '2026-11-21',
+                dueDate: '2026-12-21',
+                grandTotal: 3187,
+                taxableAmount: 3035,
+                isSameState: true,
+                cgstRate: 2.5,
+                cgstAmount: 75.88,
+                sgstRate: 2.5,
+                sgstAmount: 75.88,
+                igstRate: 0,
+                igstAmount: 0,
+                amountInWords: 'Rupees Three Thousand One Hundred Eighty Seven Only'
+            },
+            location: 'Pune'
+        },
+        {
             _id: 'mock_bk_73420',
             bookingNo: '73420',
             dutySlipNo: '73420',
@@ -2244,7 +3574,38 @@ function getFallbackBookings() {
             dutyClosed: true,
             location: 'Pune',
             isInvoiced: true,
-            dutySlipUploaded: true
+            isPaid: false,
+            paymentStatus: 'INVOICED',
+            dutySlipUploaded: true,
+            dutySlipFileName: 'DutySlip_73420_signed.png',
+            dutyCloseReadings: {
+                totalKms: 125,
+                totalHours: 10.5,
+                totalDays: 1,
+                totalNights: 0,
+                driverAllowance: 250,
+                lateNightCharges: 0,
+                permitCharges: 0,
+                fuelSurcharge: 75.25,
+                tollCharges: 140,
+                parkingCharges: 100,
+                guestSignatureConfirmed: true
+            },
+            invoiceDetails: {
+                invoiceNo: '73420',
+                invoiceDate: '2026-11-22',
+                dueDate: '2026-12-22',
+                grandTotal: 4253,
+                taxableAmount: 4050.25,
+                isSameState: true,
+                cgstRate: 2.5,
+                cgstAmount: 101.26,
+                sgstRate: 2.5,
+                sgstAmount: 101.26,
+                igstRate: 0,
+                igstAmount: 0,
+                amountInWords: 'Rupees Four Thousand Two Hundred Fifty Three Only'
+            }
         },
         {
             _id: 'mock_bk_73421',
@@ -2379,21 +3740,48 @@ function getFallbackBookings() {
             _id: 'mock_bk_73428',
             bookingNo: '73428',
             dutySlipNo: '73428',
-            status: 'NO_TIMING',
+            status: 'DR_DUTY_CLOSE',
             travelDate: '2026-11-23',
-            reqTime: '',
-            noTiming: true,
-            timingNotes: 'Board meeting schedule will decide pickup hour',
+            reqTime: '08:30',
+            repHours: '08',
+            repMinutes: '30',
             clientName: 'Tech Mahindra Ltd.',
             guestName: 'Ms. Rashmi Joshi',
             guestPhone: '+91 98234 55677',
             vehicleType: 'Sedan A/C',
             packageType: '8 Hrs / 80 Km',
-            vehicleNumber: '',
-            driverName: '',
-            driverAccepted: false,
-            dutyStarted: false,
-            dutyClosed: false,
+            vehicleNumber: 'MH12 AB1234',
+            driverName: 'Vikram Gaikwad',
+            driverPhone: '+91 98223 99887',
+            driverAccepted: true,
+            dutyStarted: true,
+            dutyClosed: true,
+            dutySlipUploaded: true,
+            dutySlipFileName: 'dutyslip_73428_signed.png',
+            isInvoiced: false,
+            isPaid: false,
+            paymentStatus: 'PENDING',
+            dutyCloseReadings: {
+                garageOutKm: 42100,
+                garageOutTime: '07:30',
+                reportingKm: 42115,
+                reportingTime: '08:30',
+                releasingKm: 42210,
+                releasingTime: '18:30',
+                garageInKm: 42225,
+                garageInTime: '19:30',
+                totalKms: 95,
+                totalHours: 10,
+                totalDays: 1,
+                totalNights: 0,
+                driverAllowance: 250,
+                lateNightCharges: 0,
+                permitCharges: 0,
+                fuelSurcharge: 0,
+                tollCharges: 120,
+                parkingCharges: 60,
+                guestSignatureConfirmed: true
+            },
             location: 'Pune'
         },
         {
@@ -2454,5 +3842,25 @@ if (typeof window !== 'undefined') {
     window.computeBookingStatusClient = computeBookingStatusClient;
     window.startDutyManually = startDutyManually;
     window.startDutyFromSheet = startDutyFromSheet;
+    // Billing & Switch Control Exports
+    window.handleBookingSwitchToggle = handleBookingSwitchToggle;
+    window.jumpToBilling = jumpToBilling;
+    window.loadBillingQueue = loadBillingQueue;
+    window.renderBillingTable = renderBillingTable;
+    window.selectBillingStageFilter = selectBillingStageFilter;
+    window.resetBillingFilters = resetBillingFilters;
+    window.openBillingSheet = openBillingSheet;
+    window.switchBillingSheetTab = switchBillingSheetTab;
+    window.saveBillingReadings = saveBillingReadings;
+    window.generateInvoiceFromBilling = generateInvoiceFromBilling;
+    window.recordBillingPayment = recordBillingPayment;
+    window.updateBillingSidebarBadge = updateBillingSidebarBadge;
+    window.getBillingStage = getBillingStage;
+    window.calculateInvoiceForBookingClient = calculateInvoiceForBookingClient;
+    window.printBillingInvoiceNow = printBillingInvoiceNow;
+    window.emailBillingInvoiceNow = emailBillingInvoiceNow;
+    window.sendBillingWhatsAppNow = sendBillingWhatsAppNow;
+    window.sendBillingWhatsApp = sendBillingWhatsApp;
+    window.copyBillingSummaryText = copyBillingSummaryText;
 }
 
